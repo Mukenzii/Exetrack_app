@@ -1,0 +1,469 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 60;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AA000001 /* ExeTrackApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100001 /* ExeTrackApp.swift */; };
+		AA000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100002 /* ContentView.swift */; };
+		AA000003 /* ColorExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100003 /* ColorExtension.swift */; };
+		AA000004 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100004 /* PersistenceController.swift */; };
+		AA000005 /* TransactionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100005 /* TransactionViewModel.swift */; };
+		AA000006 /* BudgetViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100006 /* BudgetViewModel.swift */; };
+		AA000007 /* AmountText.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100007 /* AmountText.swift */; };
+		AA000008 /* AddTransactionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100008 /* AddTransactionView.swift */; };
+		AA000009 /* TransactionsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100009 /* TransactionsListView.swift */; };
+		AA000018 /* NeedsReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100018 /* NeedsReviewView.swift */; };
+		AA000019 /* TransactionDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100019 /* TransactionDetailSheet.swift */; };
+		AA000010 /* CategoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100010 /* CategoriesView.swift */; };
+		AA000011 /* EditCategoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100011 /* EditCategoryView.swift */; };
+		AA000012 /* StatisticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100012 /* StatisticsView.swift */; };
+		AA000013 /* BudgetsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100013 /* BudgetsView.swift */; };
+		AA000014 /* AddBudgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100014 /* AddBudgetView.swift */; };
+		AA000015 /* ExeTrack.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = AA100015 /* ExeTrack.xcdatamodeld */; };
+		AA000016 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100016 /* DesignSystem.swift */; };
+		AA000017 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100017 /* HomeView.swift */; };
+		AA000020 /* AnimatedAmountText.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100020 /* AnimatedAmountText.swift */; };
+		AA000021 /* CategoryDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100021 /* CategoryDetailView.swift */; };
+		AA000022 /* SetCategoryLimitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100022 /* SetCategoryLimitView.swift */; };
+		BBBB0001 /* BlurUIKit in Frameworks */ = {isa = PBXBuildFile; productRef = BBBB0002 /* BlurUIKit */; };
+		BBBB0003 /* BlurSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = BBBB0004 /* BlurSwiftUI */; };
+		CCAA0001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CCAA0002 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		CCAA0002 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AA100001 /* ExeTrackApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExeTrackApp.swift; sourceTree = "<group>"; };
+		AA100002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		AA100003 /* ColorExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorExtension.swift; sourceTree = "<group>"; };
+		AA100004 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
+		AA100005 /* TransactionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionViewModel.swift; sourceTree = "<group>"; };
+		AA100006 /* BudgetViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetViewModel.swift; sourceTree = "<group>"; };
+		AA100007 /* AmountText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmountText.swift; sourceTree = "<group>"; };
+		AA100008 /* AddTransactionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTransactionView.swift; sourceTree = "<group>"; };
+		AA100009 /* TransactionsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionsListView.swift; sourceTree = "<group>"; };
+		AA100018 /* NeedsReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NeedsReviewView.swift; sourceTree = "<group>"; };
+		AA100019 /* TransactionDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransactionDetailSheet.swift; sourceTree = "<group>"; };
+		AA100010 /* CategoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoriesView.swift; sourceTree = "<group>"; };
+		AA100021 /* CategoryDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryDetailView.swift; sourceTree = "<group>"; };
+		AA100022 /* SetCategoryLimitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetCategoryLimitView.swift; sourceTree = "<group>"; };
+		AA100011 /* EditCategoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditCategoryView.swift; sourceTree = "<group>"; };
+		AA100012 /* StatisticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsView.swift; sourceTree = "<group>"; };
+		AA100013 /* BudgetsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetsView.swift; sourceTree = "<group>"; };
+		AA100014 /* AddBudgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddBudgetView.swift; sourceTree = "<group>"; };
+		AA100015 /* ExeTrack.xcdatamodeld */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = ExeTrack.xcdatamodeld; sourceTree = "<group>"; };
+		AA100016 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		AA100017 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		AA100020 /* AnimatedAmountText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "../../Views/Shared/AnimatedAmountText.swift"; sourceTree = "<group>"; };
+		AA200001 /* ExeTrack.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ExeTrack.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		AA300001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BBBB0001 /* BlurUIKit in Frameworks */,
+				BBBB0003 /* BlurSwiftUI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		AA400001 /* ExeTrack */ = {
+			isa = PBXGroup;
+			children = (
+				CCAA0002 /* Assets.xcassets */,
+				AA400002 /* App */,
+				AA400003 /* Persistence */,
+				AA400004 /* ViewModels */,
+				AA400005 /* Views */,
+			);
+			path = ExeTrack;
+			sourceTree = "<group>";
+		};
+		AA400002 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				AA100001 /* ExeTrackApp.swift */,
+				AA100002 /* ContentView.swift */,
+				AA100003 /* ColorExtension.swift */,
+				AA100016 /* DesignSystem.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		AA400003 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				AA100004 /* PersistenceController.swift */,
+				AA100015 /* ExeTrack.xcdatamodeld */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		AA400004 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				AA100005 /* TransactionViewModel.swift */,
+				AA100006 /* BudgetViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		AA400005 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				AA400011 /* Home */,
+				AA400006 /* Components */,
+				AA400007 /* Transactions */,
+				AA400008 /* Categories */,
+				AA400009 /* Statistics */,
+				AA400010 /* Budgets */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		AA400011 /* Home */ = {
+			isa = PBXGroup;
+			children = (
+				AA100017 /* HomeView.swift */,
+				AA100020 /* AnimatedAmountText.swift */,
+			);
+			path = Home;
+			sourceTree = "<group>";
+		};
+		AA400006 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				AA100007 /* AmountText.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		AA400007 /* Transactions */ = {
+			isa = PBXGroup;
+			children = (
+				AA100008 /* AddTransactionView.swift */,
+				AA100009 /* TransactionsListView.swift */,
+				AA100018 /* NeedsReviewView.swift */,
+				AA100019 /* TransactionDetailSheet.swift */,
+			);
+			path = Transactions;
+			sourceTree = "<group>";
+		};
+		AA400008 /* Categories */ = {
+			isa = PBXGroup;
+			children = (
+				AA100010 /* CategoriesView.swift */,
+				AA100011 /* EditCategoryView.swift */,
+				AA100021 /* CategoryDetailView.swift */,
+				AA100022 /* SetCategoryLimitView.swift */,
+			);
+			path = Categories;
+			sourceTree = "<group>";
+		};
+		AA400009 /* Statistics */ = {
+			isa = PBXGroup;
+			children = (
+				AA100012 /* StatisticsView.swift */,
+			);
+			path = Statistics;
+			sourceTree = "<group>";
+		};
+		AA400010 /* Budgets */ = {
+			isa = PBXGroup;
+			children = (
+				AA100013 /* BudgetsView.swift */,
+				AA100014 /* AddBudgetView.swift */,
+			);
+			path = Budgets;
+			sourceTree = "<group>";
+		};
+		AA500001 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AA200001 /* ExeTrack.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		AA600001 = {
+			isa = PBXGroup;
+			children = (
+				AA400001 /* ExeTrack */,
+				AA500001 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AA700001 /* ExeTrack */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA800001 /* Build configuration list for PBXNativeTarget "ExeTrack" */;
+			buildPhases = (
+				AA900001 /* Sources */,
+				AA300001 /* Frameworks */,
+				AA910001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ExeTrack;
+			packageProductDependencies = (
+				BBBB0002 /* BlurUIKit */,
+				BBBB0004 /* BlurSwiftUI */,
+			);
+			productName = ExeTrack;
+			productReference = AA200001 /* ExeTrack.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AA000000 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					AA700001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = AA800002 /* Build configuration list for PBXProject "ExeTrack" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = ru;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				ru,
+				en,
+				Base,
+			);
+			mainGroup = AA600001;
+			productRefGroup = AA500001 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			packageReferences = (
+				BBBB0010 /* XCRemoteSwiftPackageReference "BlurUIKit" */,
+			);
+			targets = (
+				AA700001 /* ExeTrack */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		BBBB0010 /* XCRemoteSwiftPackageReference "BlurUIKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/TimOliver/BlurUIKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BBBB0002 /* BlurUIKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BBBB0010 /* XCRemoteSwiftPackageReference "BlurUIKit" */;
+			productName = BlurUIKit;
+		};
+		BBBB0004 /* BlurSwiftUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BBBB0010 /* XCRemoteSwiftPackageReference "BlurUIKit" */;
+			productName = BlurSwiftUI;
+		};
+/* End XCSwiftPackageProductDependency section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AA910001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CCAA0001 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AA900001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA000001 /* ExeTrackApp.swift in Sources */,
+				AA000002 /* ContentView.swift in Sources */,
+				AA000003 /* ColorExtension.swift in Sources */,
+				AA000004 /* PersistenceController.swift in Sources */,
+				AA000005 /* TransactionViewModel.swift in Sources */,
+				AA000006 /* BudgetViewModel.swift in Sources */,
+				AA000007 /* AmountText.swift in Sources */,
+				AA000008 /* AddTransactionView.swift in Sources */,
+				AA000009 /* TransactionsListView.swift in Sources */,
+				AA000018 /* NeedsReviewView.swift in Sources */,
+				AA000019 /* TransactionDetailSheet.swift in Sources */,
+				AA000010 /* CategoriesView.swift in Sources */,
+				AA000011 /* EditCategoryView.swift in Sources */,
+				AA000012 /* StatisticsView.swift in Sources */,
+				AA000013 /* BudgetsView.swift in Sources */,
+				AA000014 /* AddBudgetView.swift in Sources */,
+				AA000015 /* ExeTrack.xcdatamodeld in Sources */,
+				AA000016 /* DesignSystem.swift in Sources */,
+				AA000017 /* HomeView.swift in Sources */,
+				AA000020 /* AnimatedAmountText.swift in Sources */,
+				AA000021 /* CategoryDetailView.swift in Sources */,
+				AA000022 /* SetCategoryLimitView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		AA800003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		AA800004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		AA800005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 5L66JD8K5Y;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.exetrack.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AA800006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 5L66JD8K5Y;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.exetrack.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		AA800001 /* Build configuration list for PBXNativeTarget "ExeTrack" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA800005 /* Debug */,
+				AA800006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA800002 /* Build configuration list for PBXProject "ExeTrack" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA800003 /* Debug */,
+				AA800004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = AA000000 /* Project object */;
+}

@@ -2,6 +2,8 @@ import SwiftUI
 import CoreData
 
 struct AddBudgetView: View {
+    var existingBudget: BudgetEntity? = nil
+
     @Environment(\.managedObjectContext) private var context
     @Environment(\.dismiss) private var dismiss
 
@@ -13,6 +15,7 @@ struct AddBudgetView: View {
     @State private var isWeekly = false
     @State private var startDay = 1
 
+    private var isEditing: Bool { existingBudget != nil }
     private var vm: BudgetViewModel { BudgetViewModel(context: context) }
 
     private var amount: Double {
@@ -47,7 +50,7 @@ struct AddBudgetView: View {
                     }
                     .glassEffect(.regular.interactive(), in: .circle)
                     Spacer()
-                    Text("Budget")
+                    Text(isEditing ? "Edit Budget" : "Budget")
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(.white)
                     Spacer()
@@ -175,15 +178,20 @@ struct AddBudgetView: View {
                     guard amount > 0 else { return }
                     let month = Calendar.current.component(.month, from: Date())
                     let year  = Calendar.current.component(.year, from: Date())
-                    let entity = BudgetEntity(context: context)
-                    entity.id = UUID()
-                    entity.amount = amount
-                    entity.month = Int32(month)
-                    entity.year  = Int32(year)
-                    try? context.save()
+                    if let existing = existingBudget {
+                        existing.amount = amount
+                        try? context.save()
+                    } else {
+                        let entity = BudgetEntity(context: context)
+                        entity.id = UUID()
+                        entity.amount = amount
+                        entity.month = Int32(month)
+                        entity.year  = Int32(year)
+                        try? context.save()
+                    }
                     dismiss()
                 } label: {
-                    Text("Continue")
+                    Text(isEditing ? "Save" : "Continue")
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(.black)
                         .frame(maxWidth: .infinity)
@@ -200,6 +208,11 @@ struct AddBudgetView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onAppear {
+            if let existing = existingBudget, existing.amount > 0 {
+                digits = String(Int(existing.amount))
+            }
+        }
     }
 
     // MARK: - Helpers

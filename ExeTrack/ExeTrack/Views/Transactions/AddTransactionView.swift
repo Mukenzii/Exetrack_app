@@ -6,6 +6,8 @@ struct AddTransactionView: View {
     @Environment(\.dismiss) private var dismiss
 
     var preselectedCategory: CategoryEntity? = nil
+    var prefillAmount: Double? = nil
+    var prefillNote: String? = nil
 
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \CategoryEntity.name, ascending: true)]
@@ -109,6 +111,12 @@ struct AddTransactionView: View {
         .onAppear {
             if let cat = preselectedCategory {
                 selectedCategory = cat
+            }
+            if let amount = prefillAmount, amount > 0 {
+                expr = String(Int(amount))
+            }
+            if let merchant = prefillNote, !merchant.isEmpty {
+                note = merchant
             }
         }
     }

@@ -36,32 +36,12 @@ enum Theme {
 // MARK: - Background
 
 struct AppBackground: View {
+    /// Parallax offset driven by scroll position (pass negative values when scrolled down).
+    var glowOffset: CGFloat = 0
+
     var body: some View {
         ZStack {
             Theme.background
-
-            // Top dark fade — under the blue glow so glow renders on top
-            LinearGradient(
-                stops: [
-                    .init(color: Theme.background, location: 0.0),
-                    .init(color: Theme.background.opacity(0.55), location: 0.05),
-                    .init(color: .clear, location: 0.2)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-
-            // Top blue glow — radial, concentrated under the status bar
-            RadialGradient(
-                colors: [
-                    Color(hex: "#2D5BE3").opacity(0.85),
-                    Color(hex: "#16317F").opacity(0.45),
-                    .clear
-                ],
-                center: .init(x: 0.5, y: -0.05),
-                startRadius: 0,
-                endRadius: 460
-            )
 
             // Subtle vertical fade to deepen the bottom
             LinearGradient(
@@ -74,6 +54,34 @@ struct AppBackground: View {
     }
 }
 
+// MARK: - Glow layer (separate so HomeView can apply parallax)
+
+struct GlowLayer: View {
+    var offset: CGFloat = 0
+
+    @AppStorage("accentColorHex") private var accentColorHex = "#2D5BE3"
+
+    var body: some View {
+        GeometryReader { geo in
+            let h = geo.size.height
+            // Move gradient center upward as scroll offset goes negative
+            let centerY = (-0.05 * h + offset) / h
+            RadialGradient(
+                colors: [
+                    Color(hex: accentColorHex).opacity(0.85),
+                    Color(hex: accentColorHex).opacity(0.35),
+                    .clear
+                ],
+                center: .init(x: 0.5, y: centerY),
+                startRadius: 0,
+                endRadius: 460
+            )
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+    }
+}
+
 // MARK: - Glass icon button (circular)
 
 struct GlassIconButton: View {
@@ -81,6 +89,9 @@ struct GlassIconButton: View {
     var size: CGFloat = 44
     var tinted: Bool = true
     var action: () -> Void = {}
+
+    @AppStorage("accentColorHex") private var accentColorHex = "#2D5BE3"
+    private var accent: Color { Color(hex: accentColorHex) }
 
     var body: some View {
         Button(action: action) {
@@ -90,7 +101,7 @@ struct GlassIconButton: View {
                 .frame(width: size, height: size)
         }
         .glassEffect(
-            tinted ? .regular.tint(Theme.accent.opacity(0.35)).interactive()
+            tinted ? .regular.tint(accent.opacity(0.35)).interactive()
                    : .regular.interactive(),
             in: .circle
         )
@@ -103,6 +114,9 @@ struct SpaceChip: View {
     let title: String
     var action: () -> Void = {}
 
+    @AppStorage("accentColorHex") private var accentColorHex = "#2D5BE3"
+    private var accent: Color { Color(hex: accentColorHex) }
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
@@ -110,7 +124,7 @@ struct SpaceChip: View {
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(width: 24, height: 24)
-                    .background(Theme.accent, in: .circle)
+                    .background(accent, in: .circle)
                 Text(title)
                     .font(.system(size: 14, weight: .regular))
                     .foregroundStyle(.white)
@@ -121,7 +135,7 @@ struct SpaceChip: View {
             .padding(.trailing, 16)
             .padding(.vertical, 6)
         }
-        .glassEffect(.regular.tint(Theme.accent.opacity(0.35)).interactive(), in: .capsule)
+        .glassEffect(.regular.tint(accent.opacity(0.35)).interactive(), in: .capsule)
     }
 }
 
@@ -193,6 +207,9 @@ struct CategoryAvatar: View {
 struct AccountBadge: View {
     let name: String
 
+    @AppStorage("accentColorHex") private var accentColorHex = "#2D5BE3"
+    private var accent: Color { Color(hex: accentColorHex) }
+
     private var initial: String {
         String(name.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased()
     }
@@ -203,7 +220,7 @@ struct AccountBadge: View {
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(width: 20, height: 20)
-                .background(Theme.accent, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .background(accent, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
             Text(name)
                 .font(.system(size: 15))
                 .foregroundStyle(Theme.textSecondary)
@@ -218,6 +235,9 @@ struct BalanceChip: View {
     let value: Double
     var action: () -> Void = {}
 
+    @AppStorage("accentColorHex") private var accentColorHex = "#2D5BE3"
+    private var accent: Color { Color(hex: accentColorHex) }
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
@@ -231,7 +251,7 @@ struct BalanceChip: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
         }
-        .glassEffect(.regular.tint(Theme.accent.opacity(0.35)).interactive(), in: .capsule)
+        .glassEffect(.regular.tint(accent.opacity(0.35)).interactive(), in: .capsule)
     }
 }
 
@@ -243,10 +263,12 @@ struct ProgressRing: View {
     var lineWidth: CGFloat = 5
     var color: Color? = nil
 
+    @AppStorage("accentColorHex") private var accentColorHex = "#2D5BE3"
+
     private var clamped: Double { min(max(progress, 0), 1) }
     private var tint: Color {
         if let c = color { return c }
-        return progress >= 1 ? .red : progress > 0.85 ? .orange : Theme.accent
+        return progress >= 1 ? .red : progress > 0.85 ? .orange : Color(hex: accentColorHex)
     }
 
     var body: some View {
@@ -338,6 +360,9 @@ private struct SpendingTrendCanvas: View {
     var totalBudget: Double = 0
     var totalSpent: Double = 0
 
+    @AppStorage("accentColorHex") private var accentColorHex = "#2D5BE3"
+    private var accent: Color { Color(hex: accentColorHex) }
+
     private let topPad: CGFloat = 28
 
     private var w: CGFloat { size.width }
@@ -404,18 +429,18 @@ private struct SpendingTrendCanvas: View {
                 }
                 // Fill + actual line
                 ctx.fill(fill, with: .linearGradient(
-                    Gradient(colors: [Theme.accent.opacity(0.35), .clear]),
+                    Gradient(colors: [accent.opacity(0.35), .clear]),
                     startPoint: CGPoint(x: w / 2, y: topPad),
                     endPoint: CGPoint(x: w / 2, y: h)
                 ))
-                ctx.stroke(solid, with: .color(Theme.accent),
+                ctx.stroke(solid, with: .color(accent),
                            style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
-                ctx.stroke(dashed, with: .color(Theme.accent.opacity(0.4)),
+                ctx.stroke(dashed, with: .color(accent.opacity(0.4)),
                            style: StrokeStyle(lineWidth: 1.5, lineCap: .round, dash: [4, 7]))
                 // Dot at today
                 if !points.isEmpty {
                     let dotRect = CGRect(x: lastPt.x - 5, y: lastPt.y - 5, width: 10, height: 10)
-                    ctx.fill(Path(ellipseIn: dotRect), with: .color(Theme.accent))
+                    ctx.fill(Path(ellipseIn: dotRect), with: .color(accent))
                     let innerRect = CGRect(x: lastPt.x - 2.5, y: lastPt.y - 2.5, width: 5, height: 5)
                     ctx.fill(Path(ellipseIn: innerRect), with: .color(.white))
                 }

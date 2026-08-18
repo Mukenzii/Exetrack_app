@@ -176,6 +176,9 @@ struct TransactionDetailSheet: View {
                 set: { cat in
                     transaction.category = cat
                     try? context.save()
+                    if let cat, let merchant = transaction.note, !merchant.isEmpty {
+                        reportCategorization(merchant: merchant, category: cat)
+                    }
                     dismiss()
                 }
             ))
@@ -214,5 +217,22 @@ struct TransactionDetailSheet: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
+    }
+
+    private func reportCategorization(merchant: String, category: CategoryEntity) {
+        let backendURL = Config.backendURL
+        guard let url = URL(string: "\(backendURL)/categorize") else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = [
+            "tx_id":     0,
+            "merchant":  merchant.uppercased(),
+            "category":  category.name ?? "",
+            "icon":      category.icon ?? "tag.fill",
+            "color_hex": category.colorHex ?? "#888888",
+        ]
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        URLSession.shared.dataTask(with: req) { _, _, _ in }.resume()
     }
 }

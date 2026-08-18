@@ -13,7 +13,14 @@ struct HomeView: View {
         sortDescriptors: [NSSortDescriptor(keyPath: \BudgetEntity.month, ascending: true)]
     ) private var budgets: FetchedResults<BudgetEntity>
 
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \CategoryEntity.name, ascending: true)]
+    ) private var allCategories: FetchedResults<CategoryEntity>
+
     @State private var showAddTransaction = false
+    @State private var showAIExpense = false
+    @State private var txPrefillAmount: Double? = nil
+    @State private var txPrefillNote: String? = nil
     @State private var showStatistics = false
     @State private var showBudgets = false
     @State private var showAddBudget = false
@@ -22,6 +29,8 @@ struct HomeView: View {
     @State private var showAllTransactions = false
     @State private var selectedCategory: CategoryEntity? = nil
     @State private var selectedTx: TransactionEntity? = nil
+    @AppStorage("userName") private var userName = "Personal"
+    @State private var showProfile = false
     @State private var showQuickCategories = false
     @State private var quickCategory: CategoryEntity? = nil
     @State private var hoveredCategory: CategoryEntity? = nil
@@ -30,6 +39,7 @@ struct HomeView: View {
     @State private var categoriesReady = false
     @State private var isTouchingPlus = false
     @State private var lastDragLocation: CGPoint = .zero
+    @State private var glowOffset: CGFloat = 0
 
     // MARK: Derived data
 
@@ -131,6 +141,7 @@ struct HomeView: View {
     var body: some View {
         ZStack {
             AppBackground()
+            GlowLayer(offset: glowOffset)
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 28) {
@@ -146,6 +157,13 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
+            }
+            .onScrollGeometryChange(for: CGFloat.self) { geo in
+                geo.contentOffset.y
+            } action: { _, newOffset in
+                // Parallax: glow center moves up at 35% of scroll speed, clamped
+                let parallax = max(-newOffset * 0.35, -200)
+                glowOffset = parallax
             }
             .safeAreaInset(edge: .top) { Color.clear.frame(height: 60) }
             .scrollDisabled(showQuickCategories || isTouchingPlus)
@@ -182,11 +200,32 @@ struct HomeView: View {
 
             floatingButtons
         }
-        .fullScreenCover(isPresented: $showAddTransaction) { AddTransactionView() }
+        .onReceive(NotificationCenter.default.publisher(for: .openAddTransaction)) { note in
+            txPrefillAmount = note.userInfo?["amount"] as? Double
+            txPrefillNote   = note.userInfo?["merchant"] as? String
+            showAddTransaction = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .newPendingTransaction)) { note in
+            guard let info   = note.userInfo,
+                  let amount = info["amount"] as? Double,
+                  let merchant = info["merchant"] as? String
+            else { return }
+            let catKey  = info["category"] as? String
+            let matched = catKey.flatMap { key in
+                allCategories.first { $0.name?.lowercased().contains(key) == true }
+            }
+            let vm = TransactionViewModel(context: context)
+            vm.add(amount: amount, note: merchant, isIncome: false, category: matched, date: Date())
+        }
+        .fullScreenCover(isPresented: $showProfile) { ProfileView() }
+        .fullScreenCover(isPresented: $showAddTransaction) {
+            AddTransactionView(prefillAmount: txPrefillAmount, prefillNote: txPrefillNote)
+        }
+        .fullScreenCover(isPresented: $showAIExpense) { AIAddExpenseView(context: context) }
         .fullScreenCover(isPresented: $showNeedsReview) { NeedsReviewView() }
         .sheet(isPresented: $showAllTransactions) { TransactionsListView() }
         .sheet(isPresented: $showStatistics) { StatisticsView() }
-        .sheet(isPresented: $showBudgets) { BudgetsView() }
+        .fullScreenCover(isPresented: $showBudgets) { BudgetsView() }
         .sheet(isPresented: $showAddBudget) { AddBudgetView() }
         .sheet(isPresented: $showCategories) { CategoriesView() }
         .fullScreenCover(item: $selectedCategory) { cat in
@@ -204,7 +243,7 @@ struct HomeView: View {
 
     private var topBar: some View {
         HStack(spacing: 10) {
-            SpaceChip(title: "Personal") { showCategories = true }
+            SpaceChip(title: userName) { showProfile = true }
             Spacer()
             GlassIconButton(systemName: "wallet.bifold") {
                 if currentBudgets.isEmpty { showAddBudget = true } else { showBudgets = true }
@@ -534,6 +573,8 @@ struct HomeView: View {
 
                 GlassEffectContainer(spacing: 12) {
                     HStack(spacing: 12) {
+                        floatingButton(systemName: "sparkles") { showAIExpense = true }
+                            .accessibilityLabel("Add an expense by describing it")
                         floatingButton(systemName: "viewfinder") { }
 
                         Image(systemName: "plus")

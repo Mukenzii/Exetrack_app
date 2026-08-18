@@ -1,0 +1,10 @@
+.env
+certs/*.p8
+exetrack.db
+*.session
+__pycache__/
+*.pyc
+
+# Virtual environments (they also self-ignore, but be explicit)
+venv/
+.venv/

@@ -50,6 +50,16 @@ final class AIExpenseViewModel: ObservableObject {
 
     var usesAppleIntelligence: Bool { ExpenseIntelligence.status.usesAppleIntelligence }
 
+    /// Reports the engine that would actually run on the current text, rather
+    /// than merely whether Apple Intelligence exists. Uzbek always uses the
+    /// built-in parser because the on-device model cannot read it.
+    var engineLabel: String {
+        guard usesAppleIntelligence, ExpenseIntelligence.handlesLanguage(of: text) else {
+            return "Built-in parser"
+        }
+        return "On device"
+    }
+
     var canSubmit: Bool {
         !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && phase != .thinking
     }

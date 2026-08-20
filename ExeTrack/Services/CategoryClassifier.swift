@@ -224,12 +224,27 @@ struct CategoryClassifier {
     ]
 
     static func tokenise(_ text: String) -> Set<String> {
-        let parts = text.lowercased().components(separatedBy: CharacterSet.alphanumerics.inverted)
-        return Set(parts.filter { token in
-            token.count >= 2
-                && token.rangeOfCharacter(from: .decimalDigits) == nil
-                && !stopwords.contains(token)
-        })
+        // Going through UzbekLanguage keeps "so'm" whole and folds
+        // "Korzinkadan" / "Korzinkaga" / "Korzinkada" onto one stem, which is
+        // what lets history matching work in an agglutinative language.
+        var tokens = Set<String>()
+        for word in UzbekLanguage.words(text) {
+            let whole = UzbekLanguage.normalise(word)
+            // Both forms go in: stemming "korzinka" yields "korzin", so keeping
+            // only the stem would stop it matching the keyword table, and
+            // keeping only the whole word would stop "Korzinkadan" matching
+            // "Korzinka". Holding both makes every form line up.
+            for candidate in [whole, UzbekLanguage.stem(word), UzbekLanguage.displayStem(word)] {
+                guard candidate.count >= 2,
+                      candidate.rangeOfCharacter(from: .decimalDigits) == nil,
+                      !stopwords.contains(candidate),
+                      !UzbekLanguage.noteFiller.contains(candidate),
+                      !UzbekLanguage.isNumberWord(candidate)
+                else { continue }
+                tokens.insert(candidate)
+            }
+        }
+        return tokens
     }
 
     // MARK: - Built-in keyword table (cold start)
@@ -237,26 +252,32 @@ struct CategoryClassifier {
     /// Keyed by the app's default category names. Latin and Cyrillic spellings
     /// sit side by side because people mix languages here.
     static let keywords: [String: [String]] = [
-        "Groceries":        ["grocer", "supermarket", "korzinka", "makro", "havas", "продукт", "магазин", "oziq"],
-        "Restaurants":      ["restaurant", "cafe", "lunch", "dinner", "breakfast", "ресторан", "кафе", "обед", "ужин", "restoran", "kafe", "tushlik"],
-        "Food delivery":    ["delivery", "express24", "wolt", "glovo", "доставка", "yetkaz"],
-        "Coffee":           ["coffee", "latte", "cappuccino", "espresso", "кофе", "qahva", "kofe"],
-        "Public transport": ["metro", "bus", "tram", "метро", "автобус", "avtobus"],
-        "Car":              ["parking", "carwash", "парковк", "мойка", "avtoturargoh"],
-        "Fuel":             ["fuel", "petrol", "gasoline", "бензин", "заправк", "benzin", "yoqilg"],
-        "Taxi":             ["taxi", "uber", "yandex", "bolt", "такси", "taksi"],
-        "Utilities":        ["utilit", "electric", "коммунал", "свет", "вода", "kommunal"],
-        "Rent":             ["rent", "аренда", "квартплат", "ijara"],
-        "Internet":         ["internet", "wifi", "mobile", "интернет", "связь", "aloqa", "tarif"],
-        "Health":           ["doctor", "clinic", "hospital", "dentist", "врач", "клиник", "больниц", "shifokor"],
-        "Gym":              ["gym", "fitness", "workout", "зал", "фитнес", "sportzal"],
-        "Pharmacy":         ["pharmac", "drugstore", "аптек", "dorixona"],
-        "Entertainment":    ["cinema", "movie", "concert", "game", "кино", "концерт", "игр", "kino"],
+        "Groceries":        ["grocer", "supermarket", "korzinka", "makro", "havas", "продукт", "магазин",
+                             "oziq", "do'kon", "dukon", "magazin", "bozor", "non", "go'sht", "sut", "корзинка", "дўкон", "озиқ", "нон"],
+        "Restaurants":      ["restaurant", "cafe", "lunch", "dinner", "breakfast", "ресторан", "кафе", "обед", "ужин",
+                             "restoran", "kafe", "tushlik", "choyxona", "chayxona", "oshxona", "osh", "kabob", "milliy", "кафе", "чойхона", "ошхона", "ресторан"],
+        "Food delivery":    ["delivery", "express24", "wolt", "glovo", "доставка", "yetkaz", "dostavka", "chopar"],
+        "Coffee":           ["coffee", "latte", "cappuccino", "espresso", "кофе", "qahva", "kofe", "kaxva", "кофе", "қахва"],
+        "Public transport": ["metro", "bus", "tram", "метро", "автобус", "avtobus", "marshrutka", "tramvay", "автобус", "метро"],
+        "Car":              ["parking", "carwash", "парковк", "мойка", "avtoturargoh", "moyka", "mashina", "avto", "parkovka", "машина"],
+        "Fuel":             ["fuel", "petrol", "gasoline", "бензин", "заправк", "benzin", "yoqilg", "zapravka", "metan", "propan", "бензин", "ёқилғи"],
+        "Taxi":             ["taxi", "uber", "yandex", "bolt", "такси", "taksi", "mytaxi", "такси"],
+        "Utilities":        ["utilit", "electric", "коммунал", "свет", "вода", "kommunal", "elektr", "suv", "gaz", "svet", "коммунал", "электр", "сув"],
+        "Rent":             ["rent", "аренда", "квартплат", "ijara", "kvartira", "arenda"],
+        "Internet":         ["internet", "wifi", "mobile", "интернет", "связь", "aloqa", "tarif", "uzmobile",
+                             "beeline", "ucell", "mobiuz", "humans", "payme", "click", "интернет", "алоқа"],
+        "Health":           ["doctor", "clinic", "hospital", "dentist", "врач", "клиник", "больниц",
+                             "shifokor", "klinika", "kasalxona", "tish", "shifo", "шифокор", "клиника", "касалхона"],
+        "Gym":              ["gym", "fitness", "workout", "зал", "фитнес", "sportzal", "sport", "fitnes"],
+        "Pharmacy":         ["pharmac", "drugstore", "аптек", "dorixona", "apteka", "dori", "дорихона", "дори"],
+        "Entertainment":    ["cinema", "movie", "concert", "game", "кино", "концерт", "игр", "kino", "konsert", "park"],
         "Subscriptions":    ["subscription", "netflix", "spotify", "youtube", "icloud", "подписк", "obuna"],
-        "Travel":           ["travel", "flight", "hotel", "ticket", "путешеств", "билет", "отел", "sayohat"],
-        "Shopping":         ["shopping", "clothes", "shoes", "одежд", "обув", "покупк", "kiyim"],
-        "Electronics":      ["electronic", "phone", "laptop", "headphone", "техник", "телефон", "ноутбук", "texnika"],
-        "Salary":           ["salary", "payroll", "зарплат", "oylik", "maosh"],
+        "Travel":           ["travel", "flight", "hotel", "ticket", "путешеств", "билет", "отел",
+                             "sayohat", "aviabilet", "mehmonxona", "bilet", "otel", "samolyot"],
+        "Shopping":         ["shopping", "clothes", "shoes", "одежд", "обув", "покупк", "kiyim", "poyabzal", "ko'ylak"],
+        "Electronics":      ["electronic", "phone", "laptop", "headphone", "техник", "телефон", "ноутбук",
+                             "texnika", "telefon", "noutbuk", "kompyuter"],
+        "Salary":           ["salary", "payroll", "зарплат", "oylik", "maosh", "ish", "ойлик", "маош"],
         "Freelance":        ["freelance", "upwork", "фриланс"],
         "Investment":       ["investment", "dividend", "инвестиц"],
         "Gift":             ["gift", "present", "подарок", "sovg"],

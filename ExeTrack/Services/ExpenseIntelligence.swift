@@ -110,11 +110,23 @@ struct ExpenseIntelligence {
         """
     }
 
+    /// Whether Apple's model can read this text at all.
+    ///
+    /// It supports 23 locales and Uzbek is not among them — `supportsLocale`
+    /// returns false and generation fails with `unsupportedLanguageOrLocale`.
+    /// Detecting that up front beats attempting the call and silently landing
+    /// in the fallback.
+    static func handlesLanguage(of text: String) -> Bool {
+        if UzbekLanguage.looksUzbek(text) { return false }
+        return SystemLanguageModel.default.supportsLocale(Locale.current)
+            || SystemLanguageModel.default.supportsLocale(Locale(identifier: "en_US"))
+    }
+
     func parse(_ text: String) async throws -> [ParsedExpense] {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw ExpenseParseError.emptyInput }
 
-        guard case .onDevice = Self.status else {
+        guard case .onDevice = Self.status, Self.handlesLanguage(of: trimmed) else {
             return try HeuristicExpenseParser().parse(trimmed)
         }
 

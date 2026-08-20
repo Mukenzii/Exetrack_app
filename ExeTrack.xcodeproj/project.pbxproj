@@ -45,6 +45,7 @@
 		CCAA0001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CCAA0002 /* Assets.xcassets */; };
 		AA000041 /* AishaSTTService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100041 /* AishaSTTService.swift */; };
 		AA000042 /* CategoryClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100042 /* CategoryClassifier.swift */; };
+		AA000043 /* UzbekLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100043 /* UzbekLanguage.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -87,6 +88,7 @@
 		AA100042 /* CategoryClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryClassifier.swift; sourceTree = "<group>"; };
 		AA100050 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		AA100051 /* Secrets.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.example.xcconfig; sourceTree = "<group>"; };
+		AA100043 /* UzbekLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UzbekLanguage.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -232,6 +234,7 @@
 				AA100032 /* PushService.swift */,
 				AA100033 /* BackgroundFetchService.swift */,
 				AA100034 /* Config.swift */,
+				AA100043 /* UzbekLanguage.swift */,
 				AA100042 /* CategoryClassifier.swift */,
 				AA100041 /* AishaSTTService.swift */,
 				AA100037 /* VoiceCaptureService.swift */,
@@ -363,6 +366,7 @@
 				AA000020 /* ../../Views/Shared/AnimatedAmountText.swift in Sources */,
 				AA000021 /* CategoryDetailView.swift in Sources */,
 				AA000022 /* SetCategoryLimitView.swift in Sources */,
+				AA000043 /* UzbekLanguage.swift in Sources */,
 				AA000041 /* AishaSTTService.swift in Sources */,
 				AA000042 /* CategoryClassifier.swift in Sources */,
 				AA000035 /* ExpenseIntelligence.swift in Sources */,

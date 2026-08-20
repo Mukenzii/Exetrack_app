@@ -118,7 +118,7 @@ struct AIAddExpenseView: View {
                 Text("Describe an expense")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(.white)
-                Text(vm.usesAppleIntelligence ? "On device" : "Built-in parser")
+                Text(vm.engineLabel)
                     .font(.system(size: 11))
                     .foregroundStyle(Theme.textSecondary)
             }

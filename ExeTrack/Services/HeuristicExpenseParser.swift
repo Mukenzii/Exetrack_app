@@ -25,10 +25,116 @@ struct HeuristicExpenseParser {
 
         // "Coffee 25 000 and lunch 60 000" is two purchases, and each one's
         // words should stay with its own amount.
-        var results = Self.segments(of: trimmed).flatMap { Self.expenses(in: $0) }
+        let segments = Self.segments(of: trimmed)
+
+        // Spoken Uzbek gives amounts as words ("yigirma besh ming"), which no
+        // digit regex can see, so that text takes the word scanner instead.
+        let scan: (String) -> [ParsedExpense] = UzbekLanguage.looksUzbek(trimmed)
+            ? Self.spokenExpenses(in:)
+            : Self.expenses(in:)
+
+        var results = segments.flatMap(scan)
+        if results.isEmpty { results = scan(trimmed) }
+        // Last resort: a digit somewhere that the word scanner walked past.
         if results.isEmpty { results = Self.expenses(in: trimmed) }
         guard !results.isEmpty else { throw ExpenseParseError.nothingRecognised }
         return results
+    }
+
+    // MARK: - Word scanner (spoken amounts)
+
+    /// Walks the text word by word, collecting runs of number words into
+    /// amounts and keeping the surrounding words as the description.
+    ///
+    /// In Uzbek the merchant normally precedes the amount — "Korzinkadan 45
+    /// ming so'mlik non oldim" — so words just before the number are preferred
+    /// for the note, with following words used to fill out.
+    private static func spokenExpenses(in text: String) -> [ParsedExpense] {
+        let tokens = UzbekLanguage.words(text)
+        guard !tokens.isEmpty else { return [] }
+
+        var results: [ParsedExpense] = []
+        var preceding: [String] = []
+        var index = 0
+
+        while index < tokens.count {
+            guard Self.startsNumber(tokens[index]) else {
+                preceding.append(tokens[index])
+                index += 1
+                continue
+            }
+
+            var end = index
+            while end < tokens.count, Self.continuesNumber(tokens[end]) { end += 1 }
+            let run = Array(tokens[index..<end])
+
+            guard let amount = UzbekLanguage.value(ofNumberWords: run), amount > 0 else {
+                preceding.append(contentsOf: run)
+                index = end
+                continue
+            }
+
+            // Words after the amount, up to whatever starts the next one.
+            var following: [String] = []
+            var lookahead = end
+            while lookahead < tokens.count, !Self.startsNumber(tokens[lookahead]) {
+                following.append(tokens[lookahead])
+                lookahead += 1
+            }
+
+            let note = Self.note(before: preceding, after: following)
+            results.append(
+                ParsedExpense(
+                    amount: amount,
+                    note: note,
+                    isIncome: Self.looksLikeIncome(text),
+                    confidence: note.isEmpty ? 0.45 : 0.7
+                )
+            )
+
+            preceding = []
+            index = end
+        }
+
+        return results
+    }
+
+    private static func startsNumber(_ token: String) -> Bool {
+        UzbekLanguage.isNumberWord(token) || token.allSatisfy(\.isNumber)
+    }
+
+    /// Number runs may contain currency words ("ming so'm besh yuz"), which
+    /// shouldn't split the amount in two.
+    private static func continuesNumber(_ token: String) -> Bool {
+        startsNumber(token) || UzbekLanguage.noteFiller.contains(UzbekLanguage.normalise(token))
+    }
+
+    /// Builds a short merchant description, stemming so that "Korzinkadan"
+    /// and "Korzinkaga" both read — and classify — as "Korzinka".
+    private static func note(before: [String], after: [String]) -> String {
+        func clean(_ words: [String]) -> [String] {
+            words.compactMap { word in
+                let stem = UzbekLanguage.displayStem(word)
+                guard stem.count >= 2,
+                      !UzbekLanguage.noteFiller.contains(UzbekLanguage.stem(word)),
+                      !UzbekLanguage.noteFiller.contains(stem),
+                      !UzbekLanguage.noteFiller.contains(UzbekLanguage.normalise(word)),
+                      !UzbekLanguage.isNumberWord(stem),
+                      stem.rangeOfCharacter(from: .decimalDigits) == nil
+                else { return nil }
+                return stem
+            }
+        }
+
+        // The two words closest to the amount carry the most meaning.
+        let lead = Array(clean(before).suffix(2))
+        let trail = clean(after)
+        var picked: [String] = []
+        for word in lead + trail where !picked.contains(word) {
+            picked.append(word)
+            if picked.count == 3 { break }
+        }
+        return picked.joined(separator: " ").capitalizedFirst
     }
 
     /// Breaks the note on spoken conjunctions. Commas are left alone because

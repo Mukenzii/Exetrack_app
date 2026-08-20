@@ -25,3 +25,7 @@ Pods/
 .DS_Store
 .AppleDouble
 .LSOverride
+
+# Local secrets — never commit the real API key
+Secrets.xcconfig
+**/Secrets.xcconfig

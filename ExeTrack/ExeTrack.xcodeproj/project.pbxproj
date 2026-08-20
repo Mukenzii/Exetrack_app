@@ -43,6 +43,8 @@
 		BBBB0001 /* BlurUIKit in Frameworks */ = {isa = PBXBuildFile; productRef = BBBB0002 /* BlurUIKit */; };
 		BBBB0003 /* BlurSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = BBBB0004 /* BlurSwiftUI */; };
 		CCAA0001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CCAA0002 /* Assets.xcassets */; };
+		AA000041 /* AishaSTTService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100041 /* AishaSTTService.swift */; };
+		AA000042 /* CategoryClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100042 /* CategoryClassifier.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -81,6 +83,10 @@
 		AA100040 /* AIExpenseComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIExpenseComponents.swift; sourceTree = "<group>"; };
 		AA200001 /* ExeTrack.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ExeTrack.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CCAA0002 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AA100041 /* AishaSTTService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AishaSTTService.swift; sourceTree = "<group>"; };
+		AA100042 /* CategoryClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryClassifier.swift; sourceTree = "<group>"; };
+		AA100050 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
+		AA100051 /* Secrets.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.example.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -226,6 +232,8 @@
 				AA100032 /* PushService.swift */,
 				AA100033 /* BackgroundFetchService.swift */,
 				AA100034 /* Config.swift */,
+				AA100042 /* CategoryClassifier.swift */,
+				AA100041 /* AishaSTTService.swift */,
 				AA100037 /* VoiceCaptureService.swift */,
 				AA100036 /* HeuristicExpenseParser.swift */,
 				AA100035 /* ExpenseIntelligence.swift */,
@@ -245,6 +253,8 @@
 			isa = PBXGroup;
 			children = (
 				AA400001 /* ExeTrack */,
+				AA100050 /* Secrets.xcconfig */,
+				AA100051 /* Secrets.example.xcconfig */,
 				AA500001 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -353,6 +363,8 @@
 				AA000020 /* ../../Views/Shared/AnimatedAmountText.swift in Sources */,
 				AA000021 /* CategoryDetailView.swift in Sources */,
 				AA000022 /* SetCategoryLimitView.swift in Sources */,
+				AA000041 /* AishaSTTService.swift in Sources */,
+				AA000042 /* CategoryClassifier.swift in Sources */,
 				AA000035 /* ExpenseIntelligence.swift in Sources */,
 				AA000036 /* HeuristicExpenseParser.swift in Sources */,
 				AA000037 /* VoiceCaptureService.swift in Sources */,
@@ -477,6 +489,7 @@
 		};
 		AA800005 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = AA100050 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -503,6 +516,7 @@
 		};
 		AA800006 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = AA100050 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

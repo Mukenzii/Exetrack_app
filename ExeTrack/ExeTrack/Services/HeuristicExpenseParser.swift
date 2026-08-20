@@ -1,51 +1,22 @@
 import Foundation
 
-/// Rule-based parser used when Apple Intelligence isn't available.
+/// Rule-based extractor used when Apple Intelligence isn't available.
 ///
-/// It is deliberately simple: find the numbers, expand spoken multipliers, then
-/// match nearby words against a keyword table. Good enough that the screen is
-/// never a dead end, and it keeps the simulator and older devices usable.
+/// It finds the numbers, expands spoken multipliers, and keeps the surrounding
+/// words as the description. Choosing a category is not its job — that belongs
+/// to `CategoryClassifier`, which runs on the result either way.
 struct HeuristicExpenseParser {
 
-    let categories: [String]
-
-    // Keyword table keyed by the app's default category names. Latin and
-    // Cyrillic spellings sit side by side because people mix languages here.
-    private static let keywords: [String: [String]] = [
-        "Groceries":        ["grocer", "supermarket", "korzinka", "makro", "havas", "продукт", "магазин", "oziq"],
-        "Restaurants":      ["restaurant", "cafe", "lunch", "dinner", "breakfast", "ресторан", "кафе", "обед", "ужин", "restoran", "kafe", "tushlik"],
-        "Food delivery":    ["delivery", "express24", "wolt", "glovo", "доставка", "yetkaz"],
-        "Coffee":           ["coffee", "latte", "cappuccino", "espresso", "кофе", "qahva", "kofe"],
-        "Public transport": ["metro", "bus", "tram", "метро", "автобус", "avtobus"],
-        "Car":              ["parking", "car wash", "парковк", "мойка", "avtoturargoh"],
-        "Fuel":             ["fuel", "petrol", "gasoline", "бензин", "заправк", "benzin", "yoqilg"],
-        "Taxi":             ["taxi", "uber", "yandex go", "bolt", "такси", "taksi"],
-        "Utilities":        ["utilit", "electric", "water bill", "коммунал", "свет", "вода", "kommunal"],
-        "Rent":             ["rent", "аренда", "квартплат", "ijara"],
-        "Internet":         ["internet", "wifi", "mobile", "интернет", "связь", "aloqa", "tarif"],
-        "Health":           ["doctor", "clinic", "hospital", "dentist", "врач", "клиник", "больниц", "shifokor"],
-        "Gym":              ["gym", "fitness", "workout", "зал", "фитнес", "sportzal"],
-        "Pharmacy":         ["pharmac", "drugstore", "аптек", "dorixona"],
-        "Entertainment":    ["cinema", "movie", "concert", "game", "кино", "концерт", "игр", "kino"],
-        "Subscriptions":    ["subscription", "netflix", "spotify", "youtube", "icloud", "подписк", "obuna"],
-        "Travel":           ["travel", "flight", "hotel", "ticket", "путешеств", "билет", "отел", "sayohat"],
-        "Shopping":         ["shopping", "clothes", "shoes", "одежд", "обув", "покупк", "kiyim"],
-        "Electronics":      ["electronic", "phone", "laptop", "headphone", "техник", "телефон", "ноутбук", "texnika"],
-        "Salary":           ["salary", "payroll", "зарплат", "oylik", "maosh"],
-        "Freelance":        ["freelance", "upwork", "фриланс"],
-        "Investment":       ["investment", "dividend", "инвестиц", "dividend"],
-        "Gift":             ["gift", "present", "подарок", "sovg"],
-    ]
-
     private static let incomeWords = [
-        "salary", "received", "refund", "bonus", "income", "paid me", "cashback",
+        "salary", "received", "refund", "bonus", "income", "cashback",
         "зарплат", "получил", "возврат", "премия", "доход", "кэшбэк",
         "oylik", "maosh", "qaytar", "daromad",
     ]
 
     private static let multipliers: [(String, Double)] = [
-        ("million", 1_000_000), ("mln", 1_000_000), ("млн", 1_000_000), ("mln.", 1_000_000),
-        ("ming",    1_000),     ("тыс", 1_000),     ("тысяч", 1_000),   ("k", 1_000), ("к", 1_000),
+        ("million", 1_000_000), ("mln", 1_000_000), ("млн", 1_000_000),
+        ("ming",    1_000),     ("тыс", 1_000),     ("тысяч", 1_000),
+        ("k",       1_000),     ("к",   1_000),
     ]
 
     func parse(_ text: String) throws -> [ParsedExpense] {
@@ -54,8 +25,8 @@ struct HeuristicExpenseParser {
 
         // "Coffee 25 000 and lunch 60 000" is two purchases, and each one's
         // words should stay with its own amount.
-        var results = Self.segments(of: trimmed).flatMap { expenses(in: $0) }
-        if results.isEmpty { results = expenses(in: trimmed) }
+        var results = Self.segments(of: trimmed).flatMap { Self.expenses(in: $0) }
+        if results.isEmpty { results = Self.expenses(in: trimmed) }
         guard !results.isEmpty else { throw ExpenseParseError.nothingRecognised }
         return results
     }
@@ -79,8 +50,8 @@ struct HeuristicExpenseParser {
         return parts.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
     }
 
-    private func expenses(in text: String) -> [ParsedExpense] {
-        let matches = Self.amountMatches(in: text)
+    private static func expenses(in text: String) -> [ParsedExpense] {
+        let matches = amountMatches(in: text)
         guard !matches.isEmpty else { return [] }
 
         let ns = text as NSString
@@ -92,15 +63,14 @@ struct HeuristicExpenseParser {
             let end = index == matches.count - 1 ? ns.length : matches[index + 1].range.location
             let context = ns.substring(with: NSRange(location: start, length: max(end - start, 0)))
 
-            let category = Self.category(for: context, allowed: categories)
+            let note = self.note(from: context)
             results.append(
                 ParsedExpense(
                     amount: match.value,
-                    categoryName: category ?? "",
-                    note: Self.note(from: context),
-                    isIncome: Self.looksLikeIncome(context),
-                    // A keyword hit is a decent guess; a bare number is not.
-                    confidence: category == nil ? 0.35 : 0.7
+                    note: note,
+                    isIncome: looksLikeIncome(context),
+                    // An amount with a description is a firmer reading than a bare number.
+                    confidence: note.isEmpty ? 0.45 : 0.7
                 )
             )
         }
@@ -120,7 +90,7 @@ struct HeuristicExpenseParser {
     /// The lookahead keeps "25 000 kg" from reading as 25 million, while
     /// still letting the bare number through.
     private static let amountRegex = try! NSRegularExpression(
-        pattern: #"(\d[\d  .,]*\d|\d)\s*(?:(million|mln|млн|ming|тысяч|тыс|k|к)(?![\p{L}]))?"#,
+        pattern: #"(\d[\d  .,]*\d|\d)\s*(?:(million|mln|млн|ming|тысяч|тыс|k|к)(?![\p{L}]))?"#,
         options: [.caseInsensitive]
     )
 
@@ -182,21 +152,7 @@ struct HeuristicExpenseParser {
         return after == 3 && before > 0
     }
 
-    // MARK: - Category + note
-
-    private static func category(for context: String, allowed: [String]) -> String? {
-        let haystack = context.lowercased()
-
-        // A category the user actually has, named outright, always wins.
-        if let direct = allowed.first(where: { haystack.contains($0.lowercased()) }) {
-            return direct
-        }
-
-        for (name, words) in keywords where allowed.contains(name) {
-            if words.contains(where: { haystack.contains($0) }) { return name }
-        }
-        return nil
-    }
+    // MARK: - Note + direction
 
     private static func looksLikeIncome(_ context: String) -> Bool {
         let haystack = context.lowercased()

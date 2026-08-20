@@ -3,13 +3,17 @@ import FoundationModels
 
 // MARK: - Plain parse result (no Core Data, safe to cross actors)
 
-/// One expense the parser believes it found in the user's text.
+/// One expense found in the user's note.
+///
+/// Deliberately carries no category: extracting *what was spent* and deciding
+/// *where it belongs* are separate jobs. `CategoryClassifier` does the second,
+/// using the user's own history rather than a model's guess.
 struct ParsedExpense: Identifiable, Sendable {
     let id = UUID()
     var amount: Double
-    var categoryName: String
     var note: String
     var isIncome: Bool
+    /// How sure the extractor was about the amount and description, 0...1.
     var confidence: Double
 }
 
@@ -17,7 +21,6 @@ struct ParsedExpense: Identifiable, Sendable {
 enum ExpenseParseError: LocalizedError {
     case emptyInput
     case nothingRecognised
-    case modelUnavailable(String)
     case failed(String)
 
     var errorDescription: String? {
@@ -26,8 +29,6 @@ enum ExpenseParseError: LocalizedError {
             return "Say or type what you spent first."
         case .nothingRecognised:
             return "I couldn't find an amount in that. Try something like “45 000 groceries at Korzinka”."
-        case .modelUnavailable(let why):
-            return why
         case .failed(let why):
             return why
         }
@@ -47,10 +48,7 @@ struct GeneratedExpense {
     @Guide(description: "The amount as a plain positive number, no spaces or currency symbols.")
     var amount: Double
 
-    @Guide(description: "The single best matching category, copied exactly from the provided list.")
-    var category: String
-
-    @Guide(description: "A short merchant or description, at most three words, in the user's own language.")
+    @Guide(description: "The merchant or a short description, at most three words, in the user's own language.")
     var note: String
 
     @Guide(description: "True only when this is money received, such as salary, a refund or a gift.")
@@ -76,13 +74,11 @@ enum ExpenseAIStatus {
 
 // MARK: - Facade
 
-/// Turns free-form text into expense drafts, preferring Apple's on-device model
-/// and falling back to a rule parser when Apple Intelligence isn't available.
+/// Pulls amounts and merchants out of free-form text, preferring Apple's
+/// on-device model and falling back to a rule parser when it isn't available.
 ///
 /// Nothing here touches the network — the text never leaves the device.
 struct ExpenseIntelligence {
-
-    let categories: [String]
 
     static var status: ExpenseAIStatus {
         switch SystemLanguageModel.default.availability {
@@ -101,16 +97,16 @@ struct ExpenseIntelligence {
 
     private var instructions: String {
         """
-        You turn short spoken or typed notes about money into structured expense entries.
+        You pull spending details out of short spoken or typed notes.
 
         Rules:
-        - Choose the category from the provided list only, copying the name exactly.
         - amount is a positive number with no separators or currency symbols.
         - Expand spoken multipliers: "k", "ming" and "тыс" mean thousand; "mln" and "млн" mean million.
-        - note is a short merchant or description of at most three words, kept in the user's own language.
+        - note is the merchant or a short description of at most three words, kept in the user's own language.
         - Return one entry per distinct purchase when several are mentioned.
         - isIncome is true only for money received.
         - Never invent an amount that was not stated.
+        - Do not categorise anything; only report what was spent and where.
         """
     }
 
@@ -119,18 +115,13 @@ struct ExpenseIntelligence {
         guard !trimmed.isEmpty else { throw ExpenseParseError.emptyInput }
 
         guard case .onDevice = Self.status else {
-            return try HeuristicExpenseParser(categories: categories).parse(trimmed)
+            return try HeuristicExpenseParser().parse(trimmed)
         }
 
         do {
             let session = LanguageModelSession(instructions: instructions)
-            let prompt = """
-            Available categories: \(categories.joined(separator: ", "))
-
-            Note from the user: "\(trimmed)"
-            """
             let response = try await session.respond(
-                to: prompt,
+                to: "Note from the user: \"\(trimmed)\"",
                 generating: GeneratedExpenseList.self,
                 options: GenerationOptions(temperature: 0.2)
             )
@@ -139,7 +130,6 @@ struct ExpenseIntelligence {
                 .map {
                     ParsedExpense(
                         amount: $0.amount,
-                        categoryName: $0.category,
                         note: $0.note.trimmingCharacters(in: .whitespacesAndNewlines),
                         isIncome: $0.isIncome,
                         confidence: min(max($0.confidence, 0), 1)
@@ -148,15 +138,13 @@ struct ExpenseIntelligence {
             // The model occasionally returns an empty list for terse input —
             // the rule parser usually still finds the number.
             guard !parsed.isEmpty else {
-                return try HeuristicExpenseParser(categories: categories).parse(trimmed)
+                return try HeuristicExpenseParser().parse(trimmed)
             }
             return parsed
-        } catch is ExpenseParseError {
-            throw ExpenseParseError.nothingRecognised
         } catch {
             // Guardrails, context overflow, or the model going away mid-request:
             // degrade to the rule parser rather than dead-ending the user.
-            return try HeuristicExpenseParser(categories: categories).parse(trimmed)
+            return try HeuristicExpenseParser().parse(trimmed)
         }
     }
 }

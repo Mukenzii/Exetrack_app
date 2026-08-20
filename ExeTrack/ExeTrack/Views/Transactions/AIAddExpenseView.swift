@@ -2,8 +2,8 @@ import CoreData
 import SwiftUI
 import UIKit
 
-/// Capture an expense by describing it — typed or spoken — then review what the
-/// parser understood before anything is written to the ledger.
+/// Capture an expense by describing it — typed, or spoken and transcribed by
+/// Aisha — then review what was understood before anything hits the ledger.
 struct AIAddExpenseView: View {
     @Environment(\.managedObjectContext) private var context
     @Environment(\.dismiss) private var dismiss
@@ -63,7 +63,7 @@ struct AIAddExpenseView: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
-                    .padding(.bottom, 180)
+                    .padding(.bottom, 190)
                 }
                 .scrollDismissesKeyboard(.interactively)
             }
@@ -77,8 +77,10 @@ struct AIAddExpenseView: View {
         }
         .preferredColorScheme(.dark)
         .animation(reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.85), value: vm.phase)
-        .onChange(of: voice.transcript) { _, new in
-            if !new.isEmpty { vm.text = new }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: voice.phase)
+        .onChange(of: voice.elapsed) { _, _ in
+            // The sync endpoint is for short clips, so wrap up automatically.
+            if voice.hasReachedLimit, voice.isRecording { finishRecording() }
         }
         .sheet(item: $categoryTarget) { target in
             CategoryPickerSheet(isIncome: target.isIncome, selected: categoryBinding(for: target.id))
@@ -94,7 +96,7 @@ struct AIAddExpenseView: View {
         } message: {
             Text(voiceError ?? "")
         }
-        .onDisappear { voice.reset() }
+        .onDisappear { voice.cancel() }
     }
 
     // MARK: - Top bar
@@ -142,17 +144,18 @@ struct AIAddExpenseView: View {
         VStack(spacing: 16) {
             SurfaceCard {
                 VStack(alignment: .leading, spacing: 14) {
-                    if voice.isRecording {
-                        VoiceWaveform(levels: voice.levels)
-                            .frame(height: 44)
-                            .transition(.opacity)
+                    switch voice.phase {
+                    case .recording:
+                        recordingBanner
+                    case .transcribing:
+                        transcribingBanner
+                    case .idle:
+                        EmptyView()
                     }
 
                     ZStack(alignment: .topLeading) {
-                        if vm.text.isEmpty {
-                            Text(voice.isRecording
-                                 ? "Listening…"
-                                 : "Tell me what you spent — for example “45 000 groceries at Korzinka”.")
+                        if vm.text.isEmpty && !voice.isBusy {
+                            Text("Tell me what you spent — for example “45 000 groceries at Korzinka”.")
                                 .font(.system(size: 16))
                                 .foregroundStyle(Theme.textSecondary)
                                 .padding(.top, 8)
@@ -165,13 +168,18 @@ struct AIAddExpenseView: View {
                             .lineLimit(3...8)
                             .focused($textFieldFocused)
                             .padding(.top, 8)
+                            .disabled(voice.isBusy)
                             .accessibilityLabel("Expense description")
                     }
                 }
                 .padding(18)
             }
 
-            if vm.text.isEmpty && !voice.isRecording {
+            if !voice.isBusy {
+                languageRow
+            }
+
+            if vm.text.isEmpty && !voice.isBusy {
                 exampleChips
             }
 
@@ -179,6 +187,60 @@ struct AIAddExpenseView: View {
                 noticeRow(notice)
             }
         }
+    }
+
+    private var recordingBanner: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Circle().fill(Color(hex: "#FF453A")).frame(width: 8, height: 8)
+                Text("Recording · \(Self.timeLabel(voice.elapsed))")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white)
+                Spacer()
+                Text("Tap stop when you're done")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.textSecondary)
+            }
+            VoiceWaveform(levels: voice.levels)
+                .frame(height: 44)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Recording, \(Int(voice.elapsed)) seconds")
+    }
+
+    private var transcribingBanner: some View {
+        HStack(spacing: 10) {
+            ProgressView().controlSize(.small).tint(accent)
+            Text("Transcribing with Aisha…")
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.textSecondary)
+            Spacer()
+        }
+    }
+
+    private var languageRow: some View {
+        HStack(spacing: 8) {
+            Text("Voice language")
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.textSecondary)
+            Spacer()
+            ForEach(AishaSTTService.Language.allCases) { language in
+                let selected = voice.language == language
+                Button { voice.language = language } label: {
+                    Text(language.shortLabel)
+                        .font(.system(size: 13, weight: selected ? .semibold : .regular))
+                        .foregroundStyle(selected ? .black : .white)
+                        .frame(width: 42, height: 30)
+                        .background(
+                            Capsule().fill(selected ? Color.white : Color.white.opacity(0.07))
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(language.rawValue.uppercased())
+                .accessibilityAddTraits(selected ? [.isSelected] : [])
+            }
+        }
+        .padding(.horizontal, 4)
     }
 
     private var exampleChips: some View {
@@ -273,6 +335,10 @@ struct AIAddExpenseView: View {
                         categoryTarget = CategoryEditTarget(id: draft.id, isIncome: draft.isIncome)
                     },
                     onPickDate: { dateTarget = DateEditTarget(id: draft.id) },
+                    onChooseAlternative: { category in
+                        guard let index = vm.drafts.firstIndex(where: { $0.id == draft.id }) else { return }
+                        withAnimation { swapCategory(at: index, to: category) }
+                    },
                     onRemove: { withAnimation { vm.remove(draft) } }
                 )
             }
@@ -357,36 +423,39 @@ struct AIAddExpenseView: View {
 
     private var micButton: some View {
         Button { toggleRecording() } label: {
-            Image(systemName: voice.isRecording ? "stop.fill" : "mic.fill")
-                .font(.system(size: 22, weight: .medium))
-                .foregroundStyle(micTint)
-                .frame(width: 60, height: 60)
-                .background(
-                    Circle().fill(voice.isRecording ? Color.white : Color.clear)
-                )
+            Group {
+                if voice.phase == .transcribing {
+                    ProgressView().controlSize(.small).tint(.white)
+                } else {
+                    Image(systemName: voice.isRecording ? "stop.fill" : "mic.fill")
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundStyle(micTint)
+                }
+            }
+            .frame(width: 60, height: 60)
+            .background(Circle().fill(voice.isRecording ? Color.white : Color.clear))
         }
         .glassEffect(
             voice.isRecording ? .regular : .regular.tint(accent.opacity(0.35)).interactive(),
             in: .circle
         )
-        .disabled(!voice.isAvailable)
+        .disabled(voice.phase == .transcribing || !voice.isConfigured)
         .accessibilityLabel(voice.isRecording ? "Stop recording" : "Record a voice note")
         .accessibilityHint(
-            voice.isAvailable
-                ? (voice.isRecording ? "Ends recording and keeps the text" : "Describe your expense out loud")
-                : "Speech recognition isn't available for your language. Type instead."
+            voice.isConfigured
+                ? (voice.isRecording ? "Ends recording and sends it to Aisha" : "Describe your expense out loud")
+                : "Voice needs an Aisha API key. Type instead."
         )
     }
 
     private var micTint: Color {
         if voice.isRecording { return .black }
-        return voice.isAvailable ? .white : Theme.textSecondary
+        return voice.isConfigured ? .white : Theme.textSecondary
     }
 
     private var sendButton: some View {
         Button {
             textFieldFocused = false
-            if voice.isRecording { voice.stop() }
             Task { await vm.submit() }
         } label: {
             HStack(spacing: 8) {
@@ -395,21 +464,22 @@ struct AIAddExpenseView: View {
                 Text("Read it")
                     .font(.system(size: 15, weight: .medium))
             }
-            .foregroundStyle(vm.canSubmit ? .black : Theme.textSecondary)
+            .foregroundStyle(canSend ? .black : Theme.textSecondary)
             .frame(maxWidth: .infinity)
             .frame(height: 60)
-            .background(Capsule().fill(vm.canSubmit ? Color.white : Color.white.opacity(0.1)))
+            .background(Capsule().fill(canSend ? Color.white : Color.white.opacity(0.1)))
         }
-        .disabled(!vm.canSubmit)
+        .disabled(!canSend)
         .accessibilityLabel("Read my note and suggest an expense")
     }
+
+    private var canSend: Bool { vm.canSubmit && !voice.isBusy }
 
     // MARK: - Actions
 
     private func toggleRecording() {
         if voice.isRecording {
-            voice.stop()
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            finishRecording()
             return
         }
         textFieldFocused = false
@@ -423,6 +493,20 @@ struct AIAddExpenseView: View {
         }
     }
 
+    private func finishRecording() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        Task {
+            do {
+                if let transcript = try await voice.stopAndTranscribe(), !transcript.isEmpty {
+                    vm.text = transcript
+                }
+            } catch {
+                voice.cancel()
+                voiceError = error.localizedDescription
+            }
+        }
+    }
+
     private func applyAndClose() {
         let count = vm.applyAll()
         guard count > 0 else { return }
@@ -430,7 +514,22 @@ struct AIAddExpenseView: View {
         dismiss()
     }
 
+    private static func timeLabel(_ seconds: TimeInterval) -> String {
+        String(format: "%d:%02d", Int(seconds) / 60, Int(seconds) % 60)
+    }
+
     // MARK: - Bindings into the draft list
+
+    /// Moves the chosen category to the front and puts the old pick back into
+    /// the alternatives, so a mis-tap is one tap to undo.
+    private func swapCategory(at index: Int, to category: CategoryEntity) {
+        var alternatives = vm.drafts[index].alternatives.filter { $0 != category }
+        if let previous = vm.drafts[index].category { alternatives.insert(previous, at: 0) }
+        vm.drafts[index].category = category
+        vm.drafts[index].alternatives = Array(alternatives.prefix(3))
+        // The user just told us the answer, so stop flagging this row.
+        vm.drafts[index].categoryConfidence = 1
+    }
 
     private func categoryBinding(for id: UUID) -> Binding<CategoryEntity?> {
         Binding(
@@ -438,6 +537,7 @@ struct AIAddExpenseView: View {
             set: { new in
                 guard let index = vm.drafts.firstIndex(where: { $0.id == id }) else { return }
                 vm.drafts[index].category = new
+                vm.drafts[index].categoryConfidence = 1
                 // Picking an income category flips the row's sign, and vice versa.
                 if let new { vm.drafts[index].isIncome = new.isIncome }
             }

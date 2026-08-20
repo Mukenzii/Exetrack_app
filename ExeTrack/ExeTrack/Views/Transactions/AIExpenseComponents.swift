@@ -8,6 +8,7 @@ struct ExpenseDraftCard: View {
     @Binding var draft: ExpenseDraft
     var onPickCategory: () -> Void
     var onPickDate: () -> Void
+    var onChooseAlternative: (CategoryEntity) -> Void
     var onRemove: () -> Void
 
     @AppStorage("accentColorHex") private var accentColorHex = "#2D5BE3"
@@ -30,6 +31,9 @@ struct ExpenseDraftCard: View {
                 header
                 amountRow
                 metaRow
+                if !draft.alternatives.isEmpty {
+                    alternativesRow
+                }
             }
             .padding(18)
         }
@@ -87,6 +91,43 @@ struct ExpenseDraftCard: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Remove this expense")
+        }
+    }
+
+    /// The classifier's runner-up categories. Correcting a wrong guess should
+    /// be one tap, not a trip through the full picker.
+    private var alternativesRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Or")
+                .font(.system(size: 11))
+                .foregroundStyle(Theme.textSecondary)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(draft.alternatives, id: \.objectID) { category in
+                        Button { onChooseAlternative(category) } label: {
+                            HStack(spacing: 7) {
+                                CategoryAvatar(
+                                    colorHex: category.colorHex ?? "#888",
+                                    systemName: category.icon ?? "tag.fill",
+                                    size: 22
+                                )
+                                Text(category.name ?? "")
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(.white)
+                                    .lineLimit(1)
+                            }
+                            .padding(.leading, 5)
+                            .padding(.trailing, 12)
+                            .padding(.vertical, 5)
+                            .background(Color.white.opacity(0.06), in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Change category to \(category.name ?? "")")
+                    }
+                }
+                .padding(.horizontal, 1)
+            }
         }
     }
 

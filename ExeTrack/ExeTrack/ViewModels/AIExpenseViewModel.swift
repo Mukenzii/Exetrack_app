@@ -10,11 +10,17 @@ struct ExpenseDraft: Identifiable {
     var note: String
     var date: Date
     var isIncome: Bool
-    /// How sure the parser was, 0...1. Drives the "check this" hint.
-    var confidence: Double
+    /// How sure the extractor was about the amount, 0...1.
+    var amountConfidence: Double
+    /// How sure the classifier was about the category, 0...1.
+    var categoryConfidence: Double
+    /// Runner-up categories, offered as one-tap corrections.
+    var alternatives: [CategoryEntity]
 
     /// Below this we nudge the user to look before saving.
-    var needsAttention: Bool { category == nil || confidence < 0.5 }
+    var needsAttention: Bool {
+        category == nil || categoryConfidence < 0.5 || amountConfidence < 0.5
+    }
 }
 
 @MainActor
@@ -62,18 +68,24 @@ final class AIExpenseViewModel: ObservableObject {
 
         phase = .thinking
         let available = allCategories()
-        let names = available.compactMap { $0.name }
 
         do {
-            let parsed = try await ExpenseIntelligence(categories: names).parse(input)
+            // Step 1 — pull out amounts and merchants.
+            let parsed = try await ExpenseIntelligence().parse(input)
+            // Step 2 — decide where each one belongs, using the user's history.
             drafts = parsed.map { item in
-                ExpenseDraft(
+                let ranked = classify(item.note.isEmpty ? input : item.note,
+                                      isIncome: item.isIncome,
+                                      in: available)
+                return ExpenseDraft(
                     amount: item.amount,
-                    category: resolve(item.categoryName, isIncome: item.isIncome, in: available),
+                    category: ranked.first?.category,
                     note: item.note,
                     date: Date(),
                     isIncome: item.isIncome,
-                    confidence: item.confidence
+                    amountConfidence: item.confidence,
+                    categoryConfidence: ranked.first?.confidence ?? 0,
+                    alternatives: Array(ranked.dropFirst().prefix(3).map(\.category))
                 )
             }
             phase = drafts.isEmpty
@@ -84,15 +96,15 @@ final class AIExpenseViewModel: ObservableObject {
         }
     }
 
-    func backToComposing() {
-        phase = .composing
-    }
+    func backToComposing() { phase = .composing }
 
     func startOver() {
         text = ""
         drafts = []
         phase = .composing
     }
+
+    func fail(_ message: String) { phase = .failed(message) }
 
     func remove(_ draft: ExpenseDraft) {
         drafts.removeAll { $0.id == draft.id }
@@ -102,6 +114,9 @@ final class AIExpenseViewModel: ObservableObject {
     // MARK: - Saving
 
     /// Writes every draft as a transaction. Returns how many were saved.
+    ///
+    /// Each saved row also becomes training data: the classifier reads the same
+    /// history next time, so a correction here improves the next suggestion.
     @discardableResult
     func applyAll() -> Int {
         let vm = TransactionViewModel(context: context)
@@ -118,7 +133,55 @@ final class AIExpenseViewModel: ObservableObject {
         return saved.count
     }
 
-    // MARK: - Category lookup
+    // MARK: - Classification
+
+    private struct RankedCategory {
+        let category: CategoryEntity
+        let confidence: Double
+    }
+
+    /// Runs `CategoryClassifier` over the user's own transactions and maps the
+    /// winning names back onto real category objects.
+    private func classify(_ note: String, isIncome: Bool, in all: [CategoryEntity]) -> [RankedCategory] {
+        let side = all.filter { $0.isIncome == isIncome }
+        guard !side.isEmpty else { return [] }
+
+        let names = side.compactMap { $0.name }
+        let classifier = CategoryClassifier(categories: names, history: trainingExamples(for: isIncome))
+
+        let byName = Dictionary(
+            side.compactMap { entity -> (String, CategoryEntity)? in
+                guard let name = entity.name else { return nil }
+                return (name, entity)
+            },
+            uniquingKeysWith: { first, _ in first }
+        )
+
+        return classifier.rank(note).compactMap { candidate in
+            guard let entity = byName[candidate.name] else { return nil }
+            return RankedCategory(category: entity, confidence: candidate.confidence)
+        }
+    }
+
+    /// Past transactions that carry both a note and a category — the classifier's
+    /// training set.
+    private func trainingExamples(for isIncome: Bool) -> [CategoryClassifier.Example] {
+        let request: NSFetchRequest<TransactionEntity> = TransactionEntity.fetchRequest()
+        request.predicate = NSPredicate(
+            format: "note != nil AND note != '' AND category != nil AND isIncome == %@",
+            NSNumber(value: isIncome)
+        )
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \TransactionEntity.date, ascending: false)]
+        // Recent habits matter more than ancient ones, and this keeps the
+        // classifier cheap on a long history.
+        request.fetchLimit = 500
+
+        return ((try? context.fetch(request)) ?? []).compactMap { tx in
+            guard let note = tx.note, !note.isEmpty,
+                  let name = tx.category?.name else { return nil }
+            return CategoryClassifier.Example(note: note, categoryName: name)
+        }
+    }
 
     private func allCategories() -> [CategoryEntity] {
         let request: NSFetchRequest<CategoryEntity> = CategoryEntity.fetchRequest()
@@ -126,21 +189,14 @@ final class AIExpenseViewModel: ObservableObject {
         return (try? context.fetch(request)) ?? []
     }
 
-    /// Maps a category name the parser produced onto a real category, keeping
-    /// income and expense sides separate so a refund can't land in "Groceries".
-    private func resolve(_ name: String, isIncome: Bool, in all: [CategoryEntity]) -> CategoryEntity? {
-        let candidates = all.filter { $0.isIncome == isIncome }
-        guard !candidates.isEmpty else { return nil }
-
-        let needle = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !needle.isEmpty else { return nil }
-
-        if let exact = candidates.first(where: { ($0.name ?? "").lowercased() == needle }) {
-            return exact
-        }
-        return candidates.first { candidate in
-            let hay = (candidate.name ?? "").lowercased()
-            return hay.contains(needle) || needle.contains(hay)
-        }
+    /// Re-runs classification for one draft after the user flips it between
+    /// expense and income, or edits the note.
+    func reclassify(draftID: UUID) {
+        guard let index = drafts.firstIndex(where: { $0.id == draftID }) else { return }
+        let draft = drafts[index]
+        let ranked = classify(draft.note, isIncome: draft.isIncome, in: allCategories())
+        drafts[index].category = ranked.first?.category
+        drafts[index].categoryConfidence = ranked.first?.confidence ?? 0
+        drafts[index].alternatives = Array(ranked.dropFirst().prefix(3).map(\.category))
     }
 }

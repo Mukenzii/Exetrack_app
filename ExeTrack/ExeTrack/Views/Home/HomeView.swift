@@ -110,7 +110,12 @@ struct HomeView: View {
         var cumulative = [Double](repeating: 0, count: day)
         for tx in thisMonthTx where !tx.isIncome {
             let d = cal.component(.day, from: tx.date ?? Date())
-            for i in (d - 1)..<day where i >= 0 { cumulative[i] += tx.amount }
+            // `where i >= 0` filters iterations, but the range is built first —
+            // a transaction dated later this month gave (d - 1) > day and
+            // trapped. Future-dated spending hasn't happened yet, so skip it.
+            let start = max(d - 1, 0)
+            guard start < day else { continue }
+            for i in start..<day { cumulative[i] += tx.amount }
         }
         let denom = max(totalBudget > 0 ? totalBudget : (cumulative.last ?? 1), 1)
         return cumulative.map { min($0 / denom, 1) }

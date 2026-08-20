@@ -5,7 +5,7 @@ After that, main.py will start without asking for credentials.
 
 Usage:
     cd ~/Desktop/exetrack/backend
-    venv/bin/python3.14 auth.py
+    .venv/bin/python3 auth.py
 """
 import asyncio
 from telethon import TelegramClient

@@ -68,7 +68,13 @@ struct HeuristicExpenseParser {
             while end < tokens.count, Self.continuesNumber(tokens[end]) { end += 1 }
             let run = Array(tokens[index..<end])
 
-            guard let amount = UzbekLanguage.value(ofNumberWords: run), amount > 0 else {
+            // "ikki kishi uchun" — a number in front of a counter noun is a
+            // quantity, not a price. Keep the words, drop the number.
+            let countsSomethingElse = end < tokens.count
+                && UzbekLanguage.quantityNouns.contains(UzbekLanguage.normalise(tokens[end]))
+
+            guard !countsSomethingElse,
+                  let amount = UzbekLanguage.value(ofNumberWords: run), amount > 0 else {
                 preceding.append(contentsOf: run)
                 index = end
                 continue
@@ -120,19 +126,33 @@ struct HeuristicExpenseParser {
                       !UzbekLanguage.noteFiller.contains(stem),
                       !UzbekLanguage.noteFiller.contains(UzbekLanguage.normalise(word)),
                       !UzbekLanguage.isNumberWord(stem),
-                      stem.rangeOfCharacter(from: .decimalDigits) == nil
+                      !UzbekLanguage.quantityNouns.contains(stem),
+                      // Only reject pure digits — "Express24" is a merchant.
+                      !stem.allSatisfy(\.isNumber)
                 else { return nil }
                 return stem
             }
         }
 
-        // The two words closest to the amount carry the most meaning.
-        let lead = Array(clean(before).suffix(2))
-        let trail = clean(after)
+        // In Uzbek the place is marked by a case ending — "Sportzal**ga**",
+        // "Korzinka**dan**" — and it is usually the first word, not the last.
+        // So a case-marked word leads, then the words nearest the amount.
+        let cleanedBefore = clean(before)
+        let placeNames = before.filter { word in
+            UzbekLanguage.displayStem(word) != UzbekLanguage.normalise(word)
+        }.compactMap { clean([$0]).first }
+
         var picked: [String] = []
-        for word in lead + trail where !picked.contains(word) {
+        for word in placeNames + Array(cleanedBefore.suffix(2)) + clean(after)
+        where !picked.contains(word) {
             picked.append(word)
             if picked.count == 3 { break }
+        }
+        // Choosing by priority, then reading back in sentence order, so the
+        // note still sounds like the phrase it came from.
+        let spoken = cleanedBefore + clean(after)
+        picked.sort { a, b in
+            (spoken.firstIndex(of: a) ?? 0) < (spoken.firstIndex(of: b) ?? 0)
         }
         return picked.joined(separator: " ").capitalizedFirst
     }
@@ -262,6 +282,10 @@ struct HeuristicExpenseParser {
 
     private static func looksLikeIncome(_ context: String) -> Bool {
         let haystack = context.lowercased()
+        // "oylik" is both "salary" and "monthly", so a subscription or a rent
+        // payment must not be read as money coming in.
+        let tokens = Set(UzbekLanguage.words(context).map(UzbekLanguage.normalise))
+        if !tokens.isDisjoint(with: UzbekLanguage.incomeVetoWords) { return false }
         return incomeWords.contains { haystack.contains($0) }
     }
 

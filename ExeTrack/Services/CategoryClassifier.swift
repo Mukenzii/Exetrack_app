@@ -236,7 +236,8 @@ struct CategoryClassifier {
             // "Korzinka". Holding both makes every form line up.
             for candidate in [whole, UzbekLanguage.stem(word), UzbekLanguage.displayStem(word)] {
                 guard candidate.count >= 2,
-                      candidate.rangeOfCharacter(from: .decimalDigits) == nil,
+                      // Only pure digits are noise; "Express24" is a merchant.
+                      !candidate.allSatisfy(\.isNumber),
                       !stopwords.contains(candidate),
                       !UzbekLanguage.noteFiller.contains(candidate),
                       !UzbekLanguage.isNumberWord(candidate)
@@ -255,8 +256,8 @@ struct CategoryClassifier {
         "Groceries":        ["grocer", "supermarket", "korzinka", "makro", "havas", "продукт", "магазин",
                              "oziq", "do'kon", "dukon", "magazin", "bozor", "non", "go'sht", "sut", "корзинка", "дўкон", "озиқ", "нон"],
         "Restaurants":      ["restaurant", "cafe", "lunch", "dinner", "breakfast", "ресторан", "кафе", "обед", "ужин",
-                             "restoran", "kafe", "tushlik", "choyxona", "chayxona", "oshxona", "osh", "kabob", "milliy", "кафе", "чойхона", "ошхона", "ресторан"],
-        "Food delivery":    ["delivery", "express24", "wolt", "glovo", "доставка", "yetkaz", "dostavka", "chopar"],
+                             "restoran", "kafe", "tushlik", "choyxona", "chayxona", "oshxona", "osh", "kabob", "milliy", "кафе", "чойхона", "ошхона", "ресторан", "evos", "lavash", "maxway", "oqtepa", "somsa", "burger", "pizza", "shashlik"],
+        "Food delivery":    ["delivery", "express24", "wolt", "glovo", "доставка", "yetkaz", "dostavka", "chopar", "express24", "express", "buyurtma", "ovqat", "chopar", "buyurtm"],
         "Coffee":           ["coffee", "latte", "cappuccino", "espresso", "кофе", "qahva", "kofe", "kaxva", "кофе", "қахва"],
         "Public transport": ["metro", "bus", "tram", "метро", "автобус", "avtobus", "marshrutka", "tramvay", "автобус", "метро"],
         "Car":              ["parking", "carwash", "парковк", "мойка", "avtoturargoh", "moyka", "mashina", "avto", "parkovka", "машина"],
@@ -270,13 +271,13 @@ struct CategoryClassifier {
                              "shifokor", "klinika", "kasalxona", "tish", "shifo", "шифокор", "клиника", "касалхона"],
         "Gym":              ["gym", "fitness", "workout", "зал", "фитнес", "sportzal", "sport", "fitnes"],
         "Pharmacy":         ["pharmac", "drugstore", "аптек", "dorixona", "apteka", "dori", "дорихона", "дори"],
-        "Entertainment":    ["cinema", "movie", "concert", "game", "кино", "концерт", "игр", "kino", "konsert", "park"],
+        "Entertainment":    ["cinema", "movie", "concert", "game", "кино", "концерт", "игр", "kino", "konsert", "park", "kinoteatr", "bilyard", "attraksion"],
         "Subscriptions":    ["subscription", "netflix", "spotify", "youtube", "icloud", "подписк", "obuna"],
         "Travel":           ["travel", "flight", "hotel", "ticket", "путешеств", "билет", "отел",
                              "sayohat", "aviabilet", "mehmonxona", "bilet", "otel", "samolyot"],
-        "Shopping":         ["shopping", "clothes", "shoes", "одежд", "обув", "покупк", "kiyim", "poyabzal", "ko'ylak"],
+        "Shopping":         ["shopping", "clothes", "shoes", "одежд", "обув", "покупк", "kiyim", "poyabzal", "ko'ylak", "bozor", "idish", "mebel"],
         "Electronics":      ["electronic", "phone", "laptop", "headphone", "техник", "телефон", "ноутбук",
-                             "texnika", "telefon", "noutbuk", "kompyuter"],
+                             "texnika", "telefon", "noutbuk", "kompyuter", "uzum", "quloqchin", "naushnik", "zaryadka", "planshet", "televizor"],
         "Salary":           ["salary", "payroll", "зарплат", "oylik", "maosh", "ish", "ойлик", "маош"],
         "Freelance":        ["freelance", "upwork", "фриланс"],
         "Investment":       ["investment", "dividend", "инвестиц"],

@@ -213,6 +213,16 @@ enum UzbekLanguage {
         return total + current
     }
 
+    /// Nouns that count something other than money. A number directly in
+    /// front of one of these is a quantity — "ikki kishi" is two people, and
+    /// reading it as an amount invents a 2 so'm expense.
+    static let quantityNouns: Set<String> = [
+        "kishi", "kishilik", "nafar", "dona", "marta", "xil", "bo'lak",
+        "kg", "kilo", "kilogramm", "gramm", "litr", "metr",
+        "kun", "hafta", "oy", "yil", "soat", "daqiqa", "yosh",
+        "киши", "дона", "марта", "кун", "ой", "йил", "соат",
+    ]
+
     /// Verbs and filler that surround an amount but never name a merchant.
     static let noteFiller: Set<String> = [
         "so'm", "som", "sum", "sums", "uzs", "сўм", "сум",
@@ -220,11 +230,21 @@ enum UzbekLanguage {
         "bo'ldi", "boldi", "qildim", "chiqdi", "uchun", "va", "ham", "pul",
         "menga", "bugun", "kecha", "edi", "ekan", "dedi",
         "олдим", "тўладим", "сотиб", "учун", "ва", "пул", "бугун",
+        "so'mlik", "somlik", "сўмлик", "сумлик", "so'mga", "somga",
+        "sarfladim", "tashladim", "to'layman", "tolayman", "yubordim",
+        "ishlatdim", "qildim", "yuvdirdim", "orqali", "yangi", "oyiga",
+        "raqam", "raqamim", "сарфладим", "ташладим", "орқали",
         // Russian, since the two get mixed constantly.
         "купил", "купила", "заплатил", "заплатила", "потратил", "потратила",
         "на", "за", "в", "и", "рублей",
         // English, so one shared filter covers every path.
         "spent", "paid", "bought", "for", "at", "on", "the", "and", "plus", "a", "an",
+    ]
+
+    /// Words that make an "oylik" mean *monthly*, not *salary*.
+    static let incomeVetoWords: Set<String> = [
+        "obuna", "to'lov", "tolov", "ijara", "abonent", "obunaga", "tarif",
+        "обуна", "тўлов", "ижара",
     ]
 
     // MARK: - Detection

@@ -548,6 +548,8 @@ struct CategoryPickerSheet: View {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(Theme.textSecondary)
                     TextField("Search category", text: $search)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
                         .foregroundStyle(.white)
                         .tint(.white)
                 }
@@ -809,6 +811,8 @@ struct NotesSheet: View {
                             .padding(.top, 8)
                     }
                     TextEditor(text: $draft)
+                        .autocorrectionDisabled()
+                        .textInputAutocapitalization(.never)
                         .font(.system(size: 18))
                         .foregroundStyle(.white)
                         .scrollContentBackground(.hidden)

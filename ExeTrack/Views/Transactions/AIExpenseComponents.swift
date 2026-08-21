@@ -151,6 +151,8 @@ struct ExpenseDraftCard: View {
     private var metaRow: some View {
         HStack(spacing: 8) {
             TextField("Add a note", text: $draft.note)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
                 .font(.system(size: 14))
                 .foregroundStyle(.white)
                 .tint(Color(hex: accentColorHex))

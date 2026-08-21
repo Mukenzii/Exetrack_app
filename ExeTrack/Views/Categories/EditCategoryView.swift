@@ -107,6 +107,7 @@ struct EditCategoryView: View {
                     // Name field + color dot
                     HStack(spacing: 12) {
                         TextField("Category Name", text: $name)
+                            .autocorrectionDisabled()
                             .font(.system(size: 16))
                             .foregroundStyle(.white)
                             .tint(accentColor)
@@ -389,6 +390,8 @@ struct IconPickerSheet: View {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(Theme.textSecondary)
                 TextField("Search icons", text: $search)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
                     .foregroundStyle(.white)
                     .tint(.white)
             }

@@ -122,6 +122,7 @@ struct ProfileView: View {
             if isEditingName {
                 HStack(spacing: 8) {
                     TextField("Your name", text: $draftName)
+                        .autocorrectionDisabled()
                         .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(.white)
                         .multilineTextAlignment(.center)

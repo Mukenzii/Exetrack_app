@@ -162,6 +162,8 @@ struct AIAddExpenseView: View {
                                 .allowsHitTesting(false)
                         }
                         TextField("", text: $vm.text, axis: .vertical)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
                             .font(.system(size: 16))
                             .foregroundStyle(.white)
                             .tint(accent)

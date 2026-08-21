@@ -32,13 +32,22 @@ class PushService: NSObject, UNUserNotificationCenterDelegate {
         UNUserNotificationCenter.current().setNotificationCategories([category])
     }
 
-    func requestPermission() {
+    /// Asks for notification permission.
+    ///
+    /// Deliberately *not* called at launch: a cold permission prompt before the
+    /// user has seen what notifications are for gets denied, and that denial is
+    /// hard to undo. The "Enable Notifications" row on the home screen calls
+    /// this once the user opts in.
+    func requestPermission(completion: ((Bool) -> Void)? = nil) {
         UNUserNotificationCenter.current().requestAuthorization(
             options: [.alert, .sound, .badge]
-        ) { granted, error in
-            guard granted else { return }
+        ) { granted, _ in
             DispatchQueue.main.async {
-                UIApplication.shared.registerForRemoteNotifications()
+                // Remote push only matters when there is a server to send it.
+                if granted && Config.isBackendConfigured {
+                    UIApplication.shared.registerForRemoteNotifications()
+                }
+                completion?(granted)
             }
         }
     }
@@ -52,7 +61,8 @@ class PushService: NSObject, UNUserNotificationCenterDelegate {
     }
 
     private func uploadToken(_ token: String) {
-        guard let url = URL(string: "\(backendURL)/register-device") else { return }
+        guard Config.isBackendConfigured,
+              let url = URL(string: "\(backendURL)/register-device") else { return }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")

@@ -29,7 +29,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         PushService.shared.setup()
-        PushService.shared.requestPermission()
+        // Permission is asked for from the home screen, in context — not here.
         BackgroundFetchService.shared.scheduleFetch()
         BackgroundFetchService.shared.fetchNow()
         return true

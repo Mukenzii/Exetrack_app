@@ -46,6 +46,7 @@
 		AA000041 /* AishaSTTService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100041 /* AishaSTTService.swift */; };
 		AA000042 /* CategoryClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100042 /* CategoryClassifier.swift */; };
 		AA000043 /* UzbekLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100043 /* UzbekLanguage.swift */; };
+		CCAA0003 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = CCAA0004 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -89,6 +90,7 @@
 		AA100050 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		AA100051 /* Secrets.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.example.xcconfig; sourceTree = "<group>"; };
 		AA100043 /* UzbekLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UzbekLanguage.swift; sourceTree = "<group>"; };
+		CCAA0004 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -108,6 +110,7 @@
 			isa = PBXGroup;
 			children = (
 				CCAA0002 /* Assets.xcassets */,
+				CCAA0004 /* PrivacyInfo.xcprivacy */,
 				AA400002 /* App */,
 				AA400003 /* Persistence */,
 				AA400004 /* ViewModels */,
@@ -329,6 +332,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CCAA0001 /* Assets.xcassets in Resources */,
+				CCAA0003 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

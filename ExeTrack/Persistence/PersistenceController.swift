@@ -5,14 +5,36 @@ final class PersistenceController {
 
     let container: NSPersistentContainer
 
+    /// True when the on-disk store could not be opened and the app is running
+    /// against memory only, so nothing the user adds will survive a relaunch.
+    private(set) var failedToLoadStore = false
+
     init(inMemory: Bool = false) {
         container = NSPersistentContainer(name: "ExeTrack")
         if inMemory {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
         }
-        container.loadPersistentStores { _, error in
-            if let error = error as NSError? {
-                fatalError("CoreData error: \(error), \(error.userInfo)")
+        // Let Core Data migrate itself when the model changes in a later release.
+        if let description = container.persistentStoreDescriptions.first {
+            description.shouldMigrateStoreAutomatically = true
+            description.shouldInferMappingModelAutomatically = true
+        }
+
+        container.loadPersistentStores { [weak container] _, error in
+            guard let error = error as NSError? else { return }
+            // A corrupt or unmigratable store used to call fatalError, which
+            // meant the app could never launch again. Fall back to memory so it
+            // still opens; the file on disk is left alone for recovery.
+            NSLog("[ExeTrack] Persistent store failed to load: \(error), \(error.userInfo)")
+            self.failedToLoadStore = true
+            guard let container else { return }
+            let fallback = NSPersistentStoreDescription()
+            fallback.type = NSInMemoryStoreType
+            container.persistentStoreDescriptions = [fallback]
+            container.loadPersistentStores { _, fallbackError in
+                if let fallbackError {
+                    NSLog("[ExeTrack] In-memory fallback also failed: \(fallbackError)")
+                }
             }
         }
         container.viewContext.automaticallyMergesChangesFromParent = true

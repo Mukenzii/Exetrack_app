@@ -1,5 +1,7 @@
 import SwiftUI
 import CoreData
+import UIKit
+import UserNotifications
 
 struct HomeView: View {
     @Environment(\.managedObjectContext) private var context
@@ -19,6 +21,7 @@ struct HomeView: View {
 
     @State private var showAddTransaction = false
     @State private var showAIExpense = false
+    @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
     @State private var txPrefillAmount: Double? = nil
     @State private var txPrefillNote: String? = nil
     @State private var showStatistics = false
@@ -156,7 +159,9 @@ struct HomeView: View {
                     if hasData && !spendingByCategory.isEmpty { spendingSection }
                     accountsSection
                     recentSection
-                    notificationsRow
+                    if notificationStatus != .authorized {
+                        notificationsRow
+                    }
                     customizeButton
                     Color.clear.frame(height: 96)
                 }
@@ -227,6 +232,7 @@ struct HomeView: View {
             AddTransactionView(prefillAmount: txPrefillAmount, prefillNote: txPrefillNote)
         }
         .fullScreenCover(isPresented: $showAIExpense) { AIAddExpenseView(context: context) }
+        .onAppear { refreshNotificationStatus() }
         .fullScreenCover(isPresented: $showNeedsReview) { NeedsReviewView() }
         .sheet(isPresented: $showAllTransactions) { TransactionsListView() }
         .sheet(isPresented: $showStatistics) { StatisticsView() }
@@ -522,6 +528,40 @@ struct HomeView: View {
     // MARK: Notifications
 
     private var notificationsRow: some View {
+        Button(action: enableNotifications) {
+            notificationsCard
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Enable notifications")
+        .accessibilityHint("Get reminders for recurring payments")
+    }
+
+    /// Asks for permission the first time; afterwards iOS refuses to prompt
+    /// again, so send the user to Settings instead of doing nothing.
+    private func enableNotifications() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            DispatchQueue.main.async {
+                switch settings.authorizationStatus {
+                case .notDetermined:
+                    PushService.shared.requestPermission { _ in refreshNotificationStatus() }
+                case .denied:
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                default:
+                    refreshNotificationStatus()
+                }
+            }
+        }
+    }
+
+    private func refreshNotificationStatus() {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            DispatchQueue.main.async { notificationStatus = settings.authorizationStatus }
+        }
+    }
+
+    private var notificationsCard: some View {
         SurfaceCard {
             HStack(spacing: 14) {
                 Image(systemName: "bell.badge")
@@ -710,7 +750,7 @@ private struct QuickCategoryPill: View {
         .background(GeometryReader { geo in
             Color.clear
                 .onAppear { onFrameChange(geo.frame(in: .global)) }
-                .onChange(of: geo.frame(in: .global)) { onFrameChange($0) }
+                .onChange(of: geo.frame(in: .global)) { _, frame in onFrameChange(frame) }
         })
         .transition(.asymmetric(
             insertion: .move(edge: .bottom).combined(with: .opacity)

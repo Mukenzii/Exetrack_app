@@ -55,13 +55,14 @@
 	</array>
 
 	<!-- Local notification usage (iOS asks user for permission) -->
-	<key>NSUserNotificationUsageDescription</key>
-	<string>ExeTrack уведомляет о новых транзакциях с твоей карты для быстрой категоризации.</string>
 
 	<!-- Voice expense capture -->
 	<key>NSMicrophoneUsageDescription</key>
 	<string>ExeTrack records only while you have recording turned on. The clip is sent to Aisha's speech service to be turned into text, then deleted from your phone.</string>
 	<key>AishaAPIKey</key>
 	<string>$(AISHA_API_KEY)</string>
+	<!-- Only standard HTTPS, which is exempt from export regulations. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

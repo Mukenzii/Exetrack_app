@@ -1,7 +1,15 @@
 import Foundation
 
 enum Config {
-    static let backendURL = "https://battery-delivers-tobacco-sometimes.trycloudflare.com"
+    /// Base URL of the optional ExeTrack backend (Telegram card-monitoring and
+    /// push). Empty means "not deployed": the app is fully usable without it,
+    /// and every feature that needs it stays switched off rather than calling
+    /// a host that isn't there.
+    static let backendURL = ""
+
+    static var isBackendConfigured: Bool {
+        !backendURL.trimmingCharacters(in: .whitespaces).isEmpty
+    }
 
     /// Aisha (space.aisha.group) speech-to-text.
     enum Aisha {

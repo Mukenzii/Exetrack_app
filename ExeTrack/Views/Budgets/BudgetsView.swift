@@ -229,8 +229,6 @@ struct BudgetsView: View {
             // Gauge + center text
             ZStack {
                 GeometryReader { geo in
-                    let w = geo.size.width
-                    let center = CGPoint(x: w / 2, y: geo.size.height)
 
                     // Track
                     GaugeArcShape(progress: 1)

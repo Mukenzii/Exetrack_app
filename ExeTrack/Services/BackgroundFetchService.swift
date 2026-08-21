@@ -15,12 +15,20 @@ class BackgroundFetchService {
     // MARK: - Registration
 
     func register() {
+        // Registering a task we can never service would have iOS wake the app
+        // on a schedule just to fail.
+        guard Config.isBackendConfigured else { return }
         BGTaskScheduler.shared.register(forTaskWithIdentifier: taskId, using: nil) { task in
-            self.handleFetch(task: task as! BGAppRefreshTask)
+            guard let refresh = task as? BGAppRefreshTask else {
+                task.setTaskCompleted(success: false)
+                return
+            }
+            self.handleFetch(task: refresh)
         }
     }
 
     func scheduleFetch() {
+        guard Config.isBackendConfigured else { return }
         let request = BGAppRefreshTaskRequest(identifier: taskId)
         request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
         try? BGTaskScheduler.shared.submit(request)
@@ -44,6 +52,7 @@ class BackgroundFetchService {
     // MARK: - API
 
     func fetchTransactions(since: String?, completion: @escaping ([[String: Any]]) -> Void) {
+        guard Config.isBackendConfigured else { completion([]); return }
         var urlStr = "\(backendURL)/pending-transactions"
         if let since { urlStr += "?since=\(since)" }
         guard let url = URL(string: urlStr) else { completion([]); return }

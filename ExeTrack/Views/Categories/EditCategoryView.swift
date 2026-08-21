@@ -432,7 +432,7 @@ struct ColorPickerSheet: View {
                 .labelsHidden()
                 .scaleEffect(2.0)
                 .frame(height: 120)
-                .onChange(of: pickedColor) { color in
+                .onChange(of: pickedColor) { _, color in
                     if let hex = color.toHex() {
                         selectedHex = hex
                     }

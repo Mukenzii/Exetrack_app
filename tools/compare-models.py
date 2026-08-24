@@ -24,6 +24,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 AGENT = os.path.join(HERE, "..", "ExeTrack", "Services", "OpenAICategoryAgent.swift")
 
 DEFAULT_MODELS = ["gpt-5-nano", "gpt-4o-mini", "gpt-5-mini"]
+EFFORT = os.environ.get("REASONING_EFFORT", "")
 
 # USD per 1M tokens, input/output. Update if OpenAI changes pricing.
 PRICES = {
@@ -109,15 +110,19 @@ def user_message():
 
 
 def run(model, key):
-    body = json.dumps({
+    payload_body = {
         "model": model,
-        "temperature": 0,
         "messages": [
             {"role": "system", "content": system_prompt()},
             {"role": "user", "content": user_message()},
         ],
         "response_format": schema(),
-    }).encode()
+    }
+    # gpt-5* are reasoning models and emit a large hidden reasoning budget by
+    # default. Cap it, or a one-line classification takes tens of seconds.
+    if model.startswith("gpt-5") and EFFORT:
+        payload_body["reasoning_effort"] = EFFORT
+    body = json.dumps(payload_body).encode()
     req = urllib.request.Request(
         "https://api.openai.com/v1/chat/completions", data=body,
         headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},

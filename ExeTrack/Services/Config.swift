@@ -51,6 +51,19 @@ enum Config {
         /// setting in `Secrets.xcconfig`. Never checked in.
         static var apiKey: String? { value(forKey: "OpenAIAPIKey") }
 
+        /// How much hidden reasoning the gpt-5 family may spend.
+        ///
+        /// This matters far more than the model choice. Measured on the twenty
+        /// Uzbek notes in tools/compare-models.py, gpt-5-nano scores:
+        ///   default  19/20  39.6s  $0.14 per 1000
+        ///   low      20/20   7.8s  $0.03 per 1000
+        ///   minimal  14/20   3.5s  $0.01 per 1000
+        /// "low" is the only setting that is both accurate and quick enough to
+        /// sit in front of someone logging an expense.
+        static var reasoningEffort: String {
+            value(forKey: "OpenAIReasoningEffort") ?? "low"
+        }
+
         static var isConfigured: Bool { apiKey != nil }
     }
 

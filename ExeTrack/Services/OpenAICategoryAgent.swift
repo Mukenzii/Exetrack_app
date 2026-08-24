@@ -78,11 +78,21 @@ struct OpenAICategoryAgent {
     - Uzbek is agglutinative, so a merchant carries case endings: "Korzinkadan", \
     "Korzinkaga" and "Korzinkada" are all the shop Korzinka.
     - The currency is the so'm. Amounts of tens or hundreds of thousands are ordinary.
-    - Common local merchants: Korzinka, Makro, Havas, Bek Market (groceries); Evos, \
-    Maxway, Oqtepa Lavash, choyxona (food); Express24, Chopar (delivery); Yandex Go, \
-    MyTaxi (taxi); Uzum, Texnomart (electronics and marketplace); Beeline, Ucell, \
-    Mobiuz, Uzmobile (mobile); Payme, Click, Humo, Uzcard (payments); UzGasTrade and \
-    filling stations (fuel); dorixona (pharmacy); shifoxona and klinika (health).
+    - Local merchants: Korzinka, Makro, Havas, Bek Market, magazin, bozor (shops \
+    selling food); Evos, Maxway, Oqtepa Lavash, choyxona, oshxona, kafe (places you \
+    eat); Express24, Chopar (delivery services); Yandex Go, MyTaxi (taxi); Uzum, \
+    Texnomart (electronics and marketplace); Beeline, Ucell, Mobiuz, Uzmobile \
+    (mobile operators); Payme, Click, Humo, Uzcard (payment apps); UzGasTrade and \
+    filling stations (fuel); dorixona (pharmacy); shifoxona, klinika (health).
+
+    Distinctions that are easy to get wrong:
+    - Eating at or collecting from a place — choyxona, kafe, Evos, osh, tushlik, \
+    lavash, somsa — is eating out. Only treat it as delivery when the note names a \
+    delivery service or says the food was brought to them.
+    - Topping up a mobile operator is connectivity, not a household utility. \
+    Household utilities are electricity, gas and water for the home.
+    - A shop selling food or ingredients — magazin, bozor, masalliq, non, go'sht — \
+    is groceries. Shopping is for clothes, shoes and household goods.
 
     Rules:
     - Choose only from the categories provided. Never invent one.
@@ -116,15 +126,23 @@ struct OpenAICategoryAgent {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 30
 
-        let body: [String: Any] = [
+        // No `temperature`: the gpt-5 family rejects any explicit value with a
+        // 400, and the enum schema already leaves almost nothing to sample.
+        var body: [String: Any] = [
             "model": Config.OpenAI.model,
-            "temperature": 0,
             "messages": [
                 ["role": "system", "content": Self.systemPrompt],
                 ["role": "user", "content": Self.userMessage(items: items, pastChoices: pastChoices)],
             ],
             "response_format": Self.responseFormat(categories: categories),
         ]
+
+        // The gpt-5 family reasons before answering, and left uncapped it spends
+        // a large hidden budget doing it — forty seconds and seven times the
+        // cost for what is a one-line classification.
+        if Config.OpenAI.model.hasPrefix("gpt-5") {
+            body["reasoning_effort"] = Config.OpenAI.reasoningEffort
+        }
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
         let data: Data

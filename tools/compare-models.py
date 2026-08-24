@@ -40,6 +40,7 @@ CATEGORIES = [
     "Groceries", "Restaurants", "Food delivery", "Coffee", "Public transport",
     "Car", "Fuel", "Taxi", "Utilities", "Rent", "Internet", "Health", "Gym",
     "Pharmacy", "Entertainment", "Subscriptions", "Travel", "Shopping", "Electronics",
+    "Debt", "Savings",
 ]
 
 # (note the parser actually produces, amount, expected category)
@@ -64,6 +65,11 @@ CASES = [
     ("Дорихона",              25000,   "Pharmacy"),
     ("Магазин масаллиқ",      50000,   "Groceries"),
     ("Choyxona osh",          45000,   "Restaurants"),
+    # Nothing in the list fits these — the agent should decline, not guess.
+    ("Qarz",                  1239000, "Debt"),
+    ("Qarz berdim Akmalga",   500000,  "Debt"),
+    ("Karta o'tkazma",        300000,  "__none_fit__"),
+    ("Jamg'armaga qo'ydim",    1000000, "Savings"),
 ]
 
 PAST_CHOICES = [("Korzinka", "Groceries"), ("Yandex go", "Taxi"), ("Payme", "Internet")]
@@ -91,7 +97,7 @@ def schema():
                     "required": ["index", "category", "confidence", "alternatives"],
                     "properties": {
                         "index": {"type": "integer"},
-                        "category": {"type": "string", "enum": CATEGORIES},
+                        "category": {"type": "string", "enum": CATEGORIES + ["__none_fit__"]},
                         "confidence": {"type": "number"},
                         "alternatives": {"type": "array", "items": {"type": "string", "enum": CATEGORIES}},
                     }}}},

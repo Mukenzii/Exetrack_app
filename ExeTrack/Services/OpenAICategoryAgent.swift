@@ -28,6 +28,12 @@ struct OpenAICategoryAgent {
         let alternatives: [String]
     }
 
+    /// Sent in the enum alongside the real categories so the model has a way
+    /// to say "none of these". Without it the schema forces a choice, and a
+    /// debt gets filed as Shopping because that is the least-bad option the
+    /// model is permitted to give.
+    static let declineValue = "__none_fit__"
+
     /// A category the user has chosen before, used as a worked example.
     struct PastChoice {
         let note: String
@@ -96,6 +102,13 @@ struct OpenAICategoryAgent {
 
     Rules:
     - Choose only from the categories provided. Never invent one.
+    - If none of them genuinely fits, answer "__none_fit__" rather than forcing a
+    poor match. Money lent or borrowed (qarz, qarz berdim, qarz oldim), a transfer
+    between the person's own cards or accounts (o'tkazma, perevod), repaying a
+    loan, and savings put aside are the usual cases — none of those is spending on
+    goods, so unless the list has a category meant for them — "Debt", "Savings",
+    "Loan received" or similar — decline. Leaving it
+    for the user to choose is better than a confident wrong answer.
     - If several fit, choose the one the user's own past choices point to.
     - confidence is 0.0 to 1.0. Be honest: use a low value when the note is vague \
     or the merchant is unfamiliar, so the user knows to check.
@@ -193,7 +206,7 @@ struct OpenAICategoryAgent {
                                 "required": ["index", "category", "confidence", "alternatives"],
                                 "properties": [
                                     "index": ["type": "integer"],
-                                    "category": ["type": "string", "enum": categories],
+                                    "category": ["type": "string", "enum": categories + [declineValue]],
                                     "confidence": ["type": "number"],
                                     // Also enum-constrained, so a correction
                                     // chip can only ever be a real category.

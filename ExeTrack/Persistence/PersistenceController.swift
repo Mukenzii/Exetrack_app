@@ -74,11 +74,17 @@ final class PersistenceController {
             // Shopping — orange/blue
             ("Shopping",         "handbag.fill",            "#FF9500", false, "Shopping"),
             ("Electronics",      "laptopcomputer",          "#007AFF", false, "Shopping"),
+            // Money moving without being spent — lending and borrowing are
+            // everyday here, and with no category for them the classifier is
+            // forced to file a qarz as Shopping.
+            ("Debt",             "arrow.left.arrow.right",  "#8E8E93", false, "Other"),
+            ("Savings",          "banknote.fill",           "#64D2FF", false, "Other"),
             // Income — green palette
             ("Salary",           "briefcase.fill",          "#30D158", true,  "Income"),
             ("Freelance",        "laptopcomputer",          "#5AC8FA", true,  "Income"),
             ("Investment",       "chart.bar.fill",          "#34C759", true,  "Income"),
             ("Gift",             "gift.fill",               "#FF9F0A", true,  "Income"),
+            ("Loan received",    "arrow.left.arrow.right",  "#8E8E93", true,  "Income"),
         ]
 
         for (name, icon, color, isIncome, group) in defaults {

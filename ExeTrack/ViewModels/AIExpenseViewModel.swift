@@ -18,8 +18,12 @@ struct ExpenseDraft: Identifiable {
     var alternatives: [CategoryEntity]
 
     /// Below this we nudge the user to look before saving.
+    ///
+    /// The threshold is set from what the agent actually returns: confident
+    /// placements come back at 0.75 and above, an unfamiliar merchant around
+    /// 0.65, and a note with no merchant at all around 0.40.
     var needsAttention: Bool {
-        category == nil || categoryConfidence < 0.5 || amountConfidence < 0.5
+        category == nil || categoryConfidence < 0.7 || amountConfidence < 0.5
     }
 }
 

@@ -123,8 +123,9 @@ struct OpenAICategoryAgent {
     - Choose only from the categories provided. Never invent one.
     - If none of them genuinely fits, answer "__none_fit__" rather than forcing a
     poor match, and use proposed_category to name the category the user should
-    create for it — a short, ordinary name in the same language and style as their
-    existing ones, with a fitting icon. Leave proposed_category blank whenever you
+    create for it — a short, ordinary name a person would recognise, in the same
+    language as the note, with a fitting icon. Never put "__none_fit__" or any
+    other placeholder in proposed_category; it is shown to the user as-is. Leave proposed_category blank whenever you
     did pick a real category. Money lent or borrowed (qarz, qarz berdim, qarz oldim), a transfer
     between the person's own cards or accounts (o'tkazma, perevod), repaying a
     loan, and savings put aside are the usual cases — none of those is spending on
@@ -288,6 +289,23 @@ struct OpenAICategoryAgent {
         let results: [Result]
     }
 
+    /// A proposal is only shown to the user if it reads like a category name.
+    /// Anything internal, empty, absurdly long or punctuation-only is dropped —
+    /// the card then just asks them to pick, rather than offering to create
+    /// something with a nonsense name.
+    private static func usableProposal(_ name: String, icon: String) -> ProposedCategory? {
+        guard !name.isEmpty,
+              name != declineValue,
+              !name.hasPrefix("_"),
+              !name.hasSuffix("_"),
+              name.count <= 28,
+              name.rangeOfCharacter(from: .letters) != nil
+        else { return nil }
+
+        let safeIcon = proposableIcons.contains(icon) ? icon : "tag.fill"
+        return ProposedCategory(name: name, icon: safeIcon)
+    }
+
     private static func decode(_ data: Data, allowed: Set<String>) throws -> [Suggestion] {
         guard let envelope = try? JSONDecoder().decode(ChatResponse.self, from: data),
               let content = envelope.choices.first?.message.content,
@@ -297,21 +315,39 @@ struct OpenAICategoryAgent {
         // The schema already constrains this, but a category the user deleted
         // mid-request would still be nonsense to apply.
         return payload.results.map { result in
-            let matched = allowed.contains(result.category)
-            let proposal = result.proposed_category.trimmingCharacters(in: .whitespacesAndNewlines)
+            let alternatives = result.alternatives
+                .filter { allowed.contains($0) && $0 != result.category }
+                .prefix(3)
+                .map { $0 }
+
+            if allowed.contains(result.category) {
+                return Suggestion(
+                    index: result.index,
+                    category: result.category,
+                    confidence: min(max(result.confidence, 0), 1),
+                    alternatives: alternatives,
+                    proposedCategory: nil
+                )
+            }
+
+            // Declined. The model sometimes echoes the sentinel back as the
+            // proposed name, and it occasionally proposes a category the user
+            // already has — neither should reach the screen.
+            let raw = result.proposed_category.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let existing = allowed.first(where: { $0.caseInsensitiveCompare(raw) == .orderedSame }) {
+                return Suggestion(
+                    index: result.index, category: existing,
+                    confidence: min(max(result.confidence, 0), 1),
+                    alternatives: alternatives, proposedCategory: nil
+                )
+            }
+
             return Suggestion(
                 index: result.index,
-                category: matched ? result.category : "",
-                confidence: matched ? min(max(result.confidence, 0), 1) : 0,
-                alternatives: result.alternatives
-                    .filter { allowed.contains($0) && $0 != result.category }
-                    .prefix(3)
-                    .map { $0 },
-                // Only meaningful when nothing matched; ignore a stray proposal
-                // that arrives alongside a real answer.
-                proposedCategory: (matched || proposal.isEmpty)
-                    ? nil
-                    : ProposedCategory(name: proposal, icon: result.proposed_icon)
+                category: "",
+                confidence: 0,
+                alternatives: alternatives,
+                proposedCategory: Self.usableProposal(raw, icon: result.proposed_icon)
             )
         }
     }

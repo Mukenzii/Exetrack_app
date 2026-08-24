@@ -27,13 +27,29 @@ enum UzbekLanguage {
 
     /// Splits on everything that isn't a letter, digit or apostrophe — so
     /// "so'm" survives as one token instead of becoming "so" + "m".
+    ///
+    /// A comma or dot *between two digits* is kept, because it belongs to the
+    /// number: splitting "1,5 mln" into "1" and "5" made them add to six and
+    /// come out as six million.
     static func words(_ text: String) -> [String] {
-        normalise(text)
-            .split { ch in
-                !(ch.isLetter || ch.isNumber || ch == "'")
+        let chars = Array(normalise(text))
+        var out: [String] = []
+        var current = ""
+
+        for (i, ch) in chars.enumerated() {
+            if ch.isLetter || ch.isNumber || ch == "'" {
+                current.append(ch)
+            } else if ch == "," || ch == ".",
+                      i > 0, chars[i - 1].isNumber,
+                      i + 1 < chars.count, chars[i + 1].isNumber {
+                current.append(ch)
+            } else if !current.isEmpty {
+                out.append(current)
+                current = ""
             }
-            .map(String.init)
-            .filter { !$0.isEmpty }
+        }
+        if !current.isEmpty { out.append(current) }
+        return out
     }
 
     // MARK: - Morphology
@@ -135,6 +151,14 @@ enum UzbekLanguage {
         "ga", "ta", "dan", "lik", "ва", "va",
     ]
 
+    /// True for a token that is a written number — digits, and any decimal or
+    /// grouping separators inside them: "45", "1,5", "1.011,00".
+    static func isNumericToken(_ token: String) -> Bool {
+        let t = normalise(token)
+        guard !t.isEmpty, t.rangeOfCharacter(from: .letters) == nil else { return false }
+        return HeuristicExpenseParser.normalisedNumber(t) != nil
+    }
+
     static func isNumberWord(_ word: String) -> Bool {
         let w = stripNumberSuffix(word)
         return units[w] != nil || scales[w] != nil
@@ -183,8 +207,11 @@ enum UzbekLanguage {
                 sawAnything = true
                 continue
             }
-            if let digits = Double(token.replacingOccurrences(of: ",", with: ".")) {
-                current += digits
+            // "1,5" and "1.011,00" — one shared reading of separators, so the
+            // word scanner and the digit regex can never disagree.
+            if token.rangeOfCharacter(from: .letters) == nil,
+               let number = HeuristicExpenseParser.normalisedNumber(token) {
+                current += number
                 sawAnything = true
                 continue
             }

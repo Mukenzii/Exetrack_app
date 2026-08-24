@@ -106,7 +106,9 @@ struct HeuristicExpenseParser {
     }
 
     private static func startsNumber(_ token: String) -> Bool {
-        UzbekLanguage.isNumberWord(token) || token.allSatisfy(\.isNumber)
+        // isNumericToken covers plain digits and decimals alike, so "1,5 mln"
+        // begins a number run rather than being discarded as a stray word.
+        UzbekLanguage.isNumberWord(token) || UzbekLanguage.isNumericToken(token)
     }
 
     /// Number runs may contain currency words ("ming so'm besh yuz"), which
@@ -127,8 +129,9 @@ struct HeuristicExpenseParser {
                       !UzbekLanguage.noteFiller.contains(UzbekLanguage.normalise(word)),
                       !UzbekLanguage.isNumberWord(stem),
                       !UzbekLanguage.quantityNouns.contains(stem),
-                      // Only reject pure digits — "Express24" is a merchant.
-                      !stem.allSatisfy(\.isNumber)
+                      // Reject numbers, including decimals, but keep merchants
+                      // that merely contain a digit like "Express24".
+                      !UzbekLanguage.isNumericToken(stem)
                 else { return nil }
                 return stem
             }

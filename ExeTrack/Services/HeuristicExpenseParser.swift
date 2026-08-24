@@ -4,7 +4,7 @@ import Foundation
 ///
 /// It finds the numbers, expands spoken multipliers, and keeps the surrounding
 /// words as the description. Choosing a category is not its job — that belongs
-/// to `CategoryClassifier`, which runs on the result either way.
+/// to `OpenAICategoryAgent`, which runs on the result either way.
 struct HeuristicExpenseParser {
 
     private static let incomeWords = [

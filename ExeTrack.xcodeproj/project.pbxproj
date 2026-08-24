@@ -44,7 +44,7 @@
 		BBBB0003 /* BlurSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = BBBB0004 /* BlurSwiftUI */; };
 		CCAA0001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CCAA0002 /* Assets.xcassets */; };
 		AA000041 /* AishaSTTService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100041 /* AishaSTTService.swift */; };
-		AA000042 /* CategoryClassifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100042 /* CategoryClassifier.swift */; };
+		AA000042 /* OpenAICategoryAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100042 /* OpenAICategoryAgent.swift */; };
 		AA000043 /* UzbekLanguage.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA100043 /* UzbekLanguage.swift */; };
 		CCAA0003 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = CCAA0004 /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
@@ -86,7 +86,7 @@
 		AA200001 /* ExeTrack.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ExeTrack.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CCAA0002 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AA100041 /* AishaSTTService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AishaSTTService.swift; sourceTree = "<group>"; };
-		AA100042 /* CategoryClassifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryClassifier.swift; sourceTree = "<group>"; };
+		AA100042 /* OpenAICategoryAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAICategoryAgent.swift; sourceTree = "<group>"; };
 		AA100050 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		AA100051 /* Secrets.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.example.xcconfig; sourceTree = "<group>"; };
 		AA100043 /* UzbekLanguage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UzbekLanguage.swift; sourceTree = "<group>"; };
@@ -238,7 +238,7 @@
 				AA100033 /* BackgroundFetchService.swift */,
 				AA100034 /* Config.swift */,
 				AA100043 /* UzbekLanguage.swift */,
-				AA100042 /* CategoryClassifier.swift */,
+				AA100042 /* OpenAICategoryAgent.swift */,
 				AA100041 /* AishaSTTService.swift */,
 				AA100037 /* VoiceCaptureService.swift */,
 				AA100036 /* HeuristicExpenseParser.swift */,
@@ -372,7 +372,7 @@
 				AA000022 /* SetCategoryLimitView.swift in Sources */,
 				AA000043 /* UzbekLanguage.swift in Sources */,
 				AA000041 /* AishaSTTService.swift in Sources */,
-				AA000042 /* CategoryClassifier.swift in Sources */,
+				AA000042 /* OpenAICategoryAgent.swift in Sources */,
 				AA000035 /* ExpenseIntelligence.swift in Sources */,
 				AA000036 /* HeuristicExpenseParser.swift in Sources */,
 				AA000037 /* VoiceCaptureService.swift in Sources */,

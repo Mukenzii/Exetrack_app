@@ -1,0 +1,255 @@
+import Foundation
+
+/// Decides which of the user's own categories an expense belongs to, by asking
+/// an OpenAI model.
+///
+/// The category list is passed as a JSON Schema `enum`, so the model is
+/// structurally unable to answer with anything that is not already one of the
+/// user's categories — no invented names, no fuzzy matching afterwards.
+///
+/// Built for Uzbek: notes arrive in Latin or Cyrillic Uzbek, usually mixed with
+/// Russian, naming local merchants. The prompt says so explicitly, and a sample
+/// of the user's own past filings is included so the model follows their habits
+/// rather than generic assumptions.
+struct OpenAICategoryAgent {
+
+    /// One expense to place.
+    struct Item {
+        let note: String
+        let amount: Double
+    }
+
+    /// Where the model put it.
+    struct Suggestion {
+        let index: Int
+        let category: String
+        let confidence: Double
+        /// Runner-up categories, offered as one-tap corrections.
+        let alternatives: [String]
+    }
+
+    /// A category the user has chosen before, used as a worked example.
+    struct PastChoice {
+        let note: String
+        let category: String
+    }
+
+    enum Failure: LocalizedError {
+        case missingAPIKey
+        case invalidAPIKey
+        case rateLimited
+        case quotaExhausted
+        case serverUnavailable
+        case unexpectedStatus(Int)
+        case badResponse
+        case network(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .missingAPIKey:
+                return "No OpenAI API key is set, so categories can't be suggested. Add OPENAI_API_KEY to Secrets.xcconfig, or pick the category yourself."
+            case .invalidAPIKey:
+                return "OpenAI rejected the API key. Check OPENAI_API_KEY in Secrets.xcconfig."
+            case .rateLimited:
+                return "OpenAI is rate limiting the app. Try again in a moment."
+            case .quotaExhausted:
+                return "The OpenAI account is out of quota, so categories can't be suggested right now."
+            case .serverUnavailable:
+                return "OpenAI is temporarily unavailable. Pick the category yourself for now."
+            case .unexpectedStatus(let code):
+                return "OpenAI returned an unexpected response (\(code))."
+            case .badResponse:
+                return "Couldn't read OpenAI's answer."
+            case .network(let why):
+                return "Couldn't reach OpenAI: \(why)"
+            }
+        }
+    }
+
+    var session: URLSession = .shared
+
+    // MARK: - Prompt
+
+    private static let systemPrompt = """
+    You file personal expenses for a user in Uzbekistan into their own categories.
+
+    About the input:
+    - Notes are in Uzbek, written in Latin or Cyrillic, and often mixed with Russian or English.
+    - Uzbek is agglutinative, so a merchant carries case endings: "Korzinkadan", \
+    "Korzinkaga" and "Korzinkada" are all the shop Korzinka.
+    - The currency is the so'm. Amounts of tens or hundreds of thousands are ordinary.
+    - Common local merchants: Korzinka, Makro, Havas, Bek Market (groceries); Evos, \
+    Maxway, Oqtepa Lavash, choyxona (food); Express24, Chopar (delivery); Yandex Go, \
+    MyTaxi (taxi); Uzum, Texnomart (electronics and marketplace); Beeline, Ucell, \
+    Mobiuz, Uzmobile (mobile); Payme, Click, Humo, Uzcard (payments); UzGasTrade and \
+    filling stations (fuel); dorixona (pharmacy); shifoxona and klinika (health).
+
+    Rules:
+    - Choose only from the categories provided. Never invent one.
+    - If several fit, choose the one the user's own past choices point to.
+    - confidence is 0.0 to 1.0. Be honest: use a low value when the note is vague \
+    or the merchant is unfamiliar, so the user knows to check.
+    - Return exactly one result per input item, matching its index.
+    - alternatives holds up to three other categories that could plausibly fit,     best first. Leave it empty when the choice is obvious.
+    """
+
+    // MARK: - Request
+
+    /// Places every item in one round trip.
+    ///
+    /// `categories` must already be filtered to the right income/expense side —
+    /// a refund should never be offered "Groceries".
+    func classify(
+        items: [Item],
+        categories: [String],
+        pastChoices: [PastChoice]
+    ) async throws -> [Suggestion] {
+        guard !items.isEmpty, !categories.isEmpty else { return [] }
+        guard let apiKey = Config.OpenAI.apiKey else { throw Failure.missingAPIKey }
+        guard let url = URL(string: "\(Config.OpenAI.baseURL)/v1/chat/completions") else {
+            throw Failure.network("bad base URL")
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30
+
+        let body: [String: Any] = [
+            "model": Config.OpenAI.model,
+            "temperature": 0,
+            "messages": [
+                ["role": "system", "content": Self.systemPrompt],
+                ["role": "user", "content": Self.userMessage(items: items, pastChoices: pastChoices)],
+            ],
+            "response_format": Self.responseFormat(categories: categories),
+        ]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw Failure.network(error.localizedDescription)
+        }
+
+        guard let http = response as? HTTPURLResponse else { throw Failure.badResponse }
+        switch http.statusCode {
+        case 200:
+            break
+        case 401:
+            throw Failure.invalidAPIKey
+        case 429:
+            // OpenAI uses 429 both for rate limits and for a spent quota.
+            let text = String(data: data, encoding: .utf8) ?? ""
+            throw text.contains("insufficient_quota") ? Failure.quotaExhausted : Failure.rateLimited
+        case 500...599:
+            throw Failure.serverUnavailable
+        default:
+            throw Failure.unexpectedStatus(http.statusCode)
+        }
+
+        return try Self.decode(data, allowed: Set(categories))
+    }
+
+    /// A JSON Schema whose `category` field is an enum of exactly the user's
+    /// categories — the model cannot return anything else.
+    private static func responseFormat(categories: [String]) -> [String: Any] {
+        [
+            "type": "json_schema",
+            "json_schema": [
+                "name": "category_assignment",
+                "strict": true,
+                "schema": [
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["results"],
+                    "properties": [
+                        "results": [
+                            "type": "array",
+                            "items": [
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": ["index", "category", "confidence", "alternatives"],
+                                "properties": [
+                                    "index": ["type": "integer"],
+                                    "category": ["type": "string", "enum": categories],
+                                    "confidence": ["type": "number"],
+                                    // Also enum-constrained, so a correction
+                                    // chip can only ever be a real category.
+                                    "alternatives": [
+                                        "type": "array",
+                                        "items": ["type": "string", "enum": categories],
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]
+    }
+
+    private static func userMessage(items: [Item], pastChoices: [PastChoice]) -> String {
+        var message = ""
+        if !pastChoices.isEmpty {
+            message += "How this user has filed things before:\n"
+            for choice in pastChoices {
+                message += "- \"\(choice.note)\" → \(choice.category)\n"
+            }
+            message += "\n"
+        }
+        message += "Place each of these:\n"
+        for (index, item) in items.enumerated() {
+            let amount = Theme.amount(item.amount)
+            let note = item.note.isEmpty ? "(no description)" : item.note
+            message += "\(index). \"\(note)\" — \(amount) so'm\n"
+        }
+        return message
+    }
+
+    // MARK: - Response
+
+    private struct ChatResponse: Decodable {
+        struct Choice: Decodable {
+            struct Message: Decodable { let content: String? }
+            let message: Message
+        }
+        let choices: [Choice]
+    }
+
+    private struct Payload: Decodable {
+        struct Result: Decodable {
+            let index: Int
+            let category: String
+            let confidence: Double
+            let alternatives: [String]
+        }
+        let results: [Result]
+    }
+
+    private static func decode(_ data: Data, allowed: Set<String>) throws -> [Suggestion] {
+        guard let envelope = try? JSONDecoder().decode(ChatResponse.self, from: data),
+              let content = envelope.choices.first?.message.content,
+              let payload = try? JSONDecoder().decode(Payload.self, from: Data(content.utf8))
+        else { throw Failure.badResponse }
+
+        // The schema already constrains this, but a category the user deleted
+        // mid-request would still be nonsense to apply.
+        return payload.results
+            .filter { allowed.contains($0.category) }
+            .map { result in
+                Suggestion(
+                    index: result.index,
+                    category: result.category,
+                    confidence: min(max(result.confidence, 0), 1),
+                    alternatives: result.alternatives
+                        .filter { allowed.contains($0) && $0 != result.category }
+                        .prefix(3)
+                        .map { $0 }
+                )
+            }
+    }
+}

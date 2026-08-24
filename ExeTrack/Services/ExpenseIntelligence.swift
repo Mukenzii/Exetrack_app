@@ -6,8 +6,8 @@ import FoundationModels
 /// One expense found in the user's note.
 ///
 /// Deliberately carries no category: extracting *what was spent* and deciding
-/// *where it belongs* are separate jobs. `CategoryClassifier` does the second,
-/// using the user's own history rather than a model's guess.
+/// *where it belongs* are separate jobs. `OpenAICategoryAgent` does the second,
+/// choosing strictly from the categories the user already has.
 struct ParsedExpense: Identifiable, Sendable {
     let id = UUID()
     var amount: Double

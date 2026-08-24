@@ -38,6 +38,9 @@ final class AIExpenseViewModel: ObservableObject {
     @Published var drafts: [ExpenseDraft] = []
     /// Shown once when we quietly fell back to the rule parser.
     @Published private(set) var fallbackNotice: String?
+    /// Why no category was suggested, when that happens. Not a failure — the
+    /// user can still choose one.
+    @Published private(set) var categoryNotice: String?
 
     private let context: NSManagedObjectContext
 
@@ -82,25 +85,25 @@ final class AIExpenseViewModel: ObservableObject {
         do {
             // Step 1 — pull out amounts and merchants.
             let parsed = try await ExpenseIntelligence().parse(input)
-            // Step 2 — decide where each one belongs, using the user's history.
+            guard !parsed.isEmpty else {
+                phase = .failed(ExpenseParseError.nothingRecognised.localizedDescription)
+                return
+            }
             drafts = parsed.map { item in
-                let ranked = classify(item.note.isEmpty ? input : item.note,
-                                      isIncome: item.isIncome,
-                                      in: available)
-                return ExpenseDraft(
+                ExpenseDraft(
                     amount: item.amount,
-                    category: ranked.first?.category,
+                    category: nil,
                     note: item.note,
                     date: Date(),
                     isIncome: item.isIncome,
                     amountConfidence: item.confidence,
-                    categoryConfidence: ranked.first?.confidence ?? 0,
-                    alternatives: Array(ranked.dropFirst().prefix(3).map(\.category))
+                    categoryConfidence: 0,
+                    alternatives: []
                 )
             }
-            phase = drafts.isEmpty
-                ? .failed(ExpenseParseError.nothingRecognised.localizedDescription)
-                : .review
+            // Step 2 — let the agent place them among the user's categories.
+            await assignCategories(to: parsed, from: available)
+            phase = .review
         } catch {
             phase = .failed(error.localizedDescription)
         }
@@ -111,6 +114,7 @@ final class AIExpenseViewModel: ObservableObject {
     func startOver() {
         text = ""
         drafts = []
+        categoryNotice = nil
         phase = .composing
     }
 
@@ -145,52 +149,84 @@ final class AIExpenseViewModel: ObservableObject {
 
     // MARK: - Classification
 
-    private struct RankedCategory {
-        let category: CategoryEntity
-        let confidence: Double
-    }
+    /// Asks the OpenAI agent to place every draft, in one round trip.
+    ///
+    /// The agent is handed only this user's categories, so whatever comes back
+    /// is already one of them. When no key is configured, or the call fails,
+    /// drafts simply arrive without a category and the user picks — the screen
+    /// still works, it just stops guessing.
+    private func assignCategories(to parsed: [ParsedExpense], from all: [CategoryEntity]) async {
+        guard Config.OpenAI.isConfigured else {
+            categoryNotice = OpenAICategoryAgent.Failure.missingAPIKey.localizedDescription
+            return
+        }
 
-    /// Runs `CategoryClassifier` over the user's own transactions and maps the
-    /// winning names back onto real category objects.
-    private func classify(_ note: String, isIncome: Bool, in all: [CategoryEntity]) -> [RankedCategory] {
-        let side = all.filter { $0.isIncome == isIncome }
-        guard !side.isEmpty else { return [] }
+        // Income and expense are placed separately so a refund can never be
+        // offered "Groceries".
+        for isIncome in [false, true] {
+            let indices = parsed.indices.filter { parsed[$0].isIncome == isIncome }
+            guard !indices.isEmpty else { continue }
 
-        let names = side.compactMap { $0.name }
-        let classifier = CategoryClassifier(categories: names, history: trainingExamples(for: isIncome))
+            let side = all.filter { $0.isIncome == isIncome }
+            let names = side.compactMap(\.name)
+            guard !names.isEmpty else { continue }
 
-        let byName = Dictionary(
-            side.compactMap { entity -> (String, CategoryEntity)? in
-                guard let name = entity.name else { return nil }
-                return (name, entity)
-            },
-            uniquingKeysWith: { first, _ in first }
-        )
+            let byName = Dictionary(
+                side.compactMap { entity -> (String, CategoryEntity)? in
+                    guard let name = entity.name else { return nil }
+                    return (name, entity)
+                },
+                uniquingKeysWith: { first, _ in first }
+            )
 
-        return classifier.rank(note).compactMap { candidate in
-            guard let entity = byName[candidate.name] else { return nil }
-            return RankedCategory(category: entity, confidence: candidate.confidence)
+            let items = indices.map {
+                OpenAICategoryAgent.Item(note: parsed[$0].note, amount: parsed[$0].amount)
+            }
+
+            do {
+                let suggestions = try await OpenAICategoryAgent().classify(
+                    items: items,
+                    categories: names,
+                    pastChoices: pastChoices(isIncome: isIncome)
+                )
+                for suggestion in suggestions {
+                    guard indices.indices.contains(suggestion.index) else { continue }
+                    let draftIndex = indices[suggestion.index]
+                    guard drafts.indices.contains(draftIndex) else { continue }
+                    drafts[draftIndex].category = byName[suggestion.category]
+                    drafts[draftIndex].categoryConfidence = suggestion.confidence
+                    drafts[draftIndex].alternatives = suggestion.alternatives.compactMap { byName[$0] }
+                }
+            } catch {
+                categoryNotice = error.localizedDescription
+            }
         }
     }
 
-    /// Past transactions that carry both a note and a category — the classifier's
-    /// training set.
-    private func trainingExamples(for isIncome: Bool) -> [CategoryClassifier.Example] {
+    /// A sample of what this user has filed before, given to the agent as
+    /// worked examples so it follows their habits rather than generic ones.
+    private func pastChoices(isIncome: Bool) -> [OpenAICategoryAgent.PastChoice] {
         let request: NSFetchRequest<TransactionEntity> = TransactionEntity.fetchRequest()
         request.predicate = NSPredicate(
             format: "note != nil AND note != '' AND category != nil AND isIncome == %@",
             NSNumber(value: isIncome)
         )
         request.sortDescriptors = [NSSortDescriptor(keyPath: \TransactionEntity.date, ascending: false)]
-        // Recent habits matter more than ancient ones, and this keeps the
-        // classifier cheap on a long history.
-        request.fetchLimit = 500
+        // Enough to show the pattern without bloating the prompt.
+        request.fetchLimit = 40
 
-        return ((try? context.fetch(request)) ?? []).compactMap { tx in
+        var seen = Set<String>()
+        var choices: [OpenAICategoryAgent.PastChoice] = []
+        for tx in (try? context.fetch(request)) ?? [] {
             guard let note = tx.note, !note.isEmpty,
-                  let name = tx.category?.name else { return nil }
-            return CategoryClassifier.Example(note: note, categoryName: name)
+                  let name = tx.category?.name else { continue }
+            let key = note.lowercased()
+            guard !seen.contains(key) else { continue }
+            seen.insert(key)
+            choices.append(.init(note: note, category: name))
+            if choices.count == 15 { break }
         }
+        return choices
     }
 
     private func allCategories() -> [CategoryEntity] {
@@ -199,14 +235,4 @@ final class AIExpenseViewModel: ObservableObject {
         return (try? context.fetch(request)) ?? []
     }
 
-    /// Re-runs classification for one draft after the user flips it between
-    /// expense and income, or edits the note.
-    func reclassify(draftID: UUID) {
-        guard let index = drafts.firstIndex(where: { $0.id == draftID }) else { return }
-        let draft = drafts[index]
-        let ranked = classify(draft.note, isIncome: draft.isIncome, in: allCategories())
-        drafts[index].category = ranked.first?.category
-        drafts[index].categoryConfidence = ranked.first?.confidence ?? 0
-        drafts[index].alternatives = Array(ranked.dropFirst().prefix(3).map(\.category))
-    }
 }

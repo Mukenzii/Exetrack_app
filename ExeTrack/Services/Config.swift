@@ -31,4 +31,29 @@ enum Config {
 
         static var isConfigured: Bool { apiKey != nil }
     }
+
+    /// OpenAI, used to place expenses into the user's own categories.
+    enum OpenAI {
+        static let baseURL = "https://api.openai.com"
+
+        /// Change this to trade cost against accuracy. Uzbek is a lower-resource
+        /// language, so a larger model reads it noticeably better.
+        static var model: String {
+            value(forKey: "OpenAIModel") ?? "gpt-4o-mini"
+        }
+
+        /// Read from Info.plist, populated by the `OPENAI_API_KEY` build
+        /// setting in `Secrets.xcconfig`. Never checked in.
+        static var apiKey: String? { value(forKey: "OpenAIAPIKey") }
+
+        static var isConfigured: Bool { apiKey != nil }
+    }
+
+    /// Reads an Info.plist string, treating an unset build setting as absent.
+    private static func value(forKey key: String) -> String? {
+        guard let raw = Bundle.main.object(forInfoDictionaryKey: key) as? String else { return nil }
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !trimmed.hasPrefix("$(") else { return nil }
+        return trimmed
+    }
 }

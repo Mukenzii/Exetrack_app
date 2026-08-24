@@ -64,5 +64,9 @@
 	<!-- Only standard HTTPS, which is exempt from export regulations. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>OpenAIAPIKey</key>
+	<string>$(OPENAI_API_KEY)</string>
+	<key>OpenAIModel</key>
+	<string>$(OPENAI_MODEL)</string>
 </dict>
 </plist>

@@ -330,6 +330,10 @@ struct AIAddExpenseView: View {
             }
             .padding(.horizontal, 4)
 
+            if let notice = vm.categoryNotice {
+                noticeRow(notice)
+            }
+
             ForEach($vm.drafts) { $draft in
                 ExpenseDraftCard(
                     draft: $draft,

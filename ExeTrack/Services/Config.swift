@@ -36,10 +36,15 @@ enum Config {
     enum OpenAI {
         static let baseURL = "https://api.openai.com"
 
-        /// Change this to trade cost against accuracy. Uzbek is a lower-resource
-        /// language, so a larger model reads it noticeably better.
+        /// Categorising is a constrained choice — the response schema already
+        /// limits the answer to the user's own categories — so the smallest
+        /// model is usually enough and costs a fraction of the alternatives.
+        ///
+        /// Uzbek is a lower-resource language, though, so if merchants start
+        /// landing in the wrong place, set OPENAI_MODEL to gpt-5-mini and
+        /// measure with tools/compare-models.py.
         static var model: String {
-            value(forKey: "OpenAIModel") ?? "gpt-4o-mini"
+            value(forKey: "OpenAIModel") ?? "gpt-5-nano"
         }
 
         /// Read from Info.plist, populated by the `OPENAI_API_KEY` build

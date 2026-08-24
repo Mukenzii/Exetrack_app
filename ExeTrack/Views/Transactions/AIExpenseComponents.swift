@@ -9,6 +9,7 @@ struct ExpenseDraftCard: View {
     var onPickCategory: () -> Void
     var onPickDate: () -> Void
     var onChooseAlternative: (CategoryEntity) -> Void
+    var onCreateProposed: () -> Void
     var onRemove: () -> Void
 
     @AppStorage("accentColorHex") private var accentColorHex = "#2D5BE3"
@@ -31,6 +32,9 @@ struct ExpenseDraftCard: View {
                 header
                 amountRow
                 metaRow
+                if draft.proposedCategory != nil {
+                    createProposedRow
+                }
                 if !draft.alternatives.isEmpty {
                     alternativesRow
                 }
@@ -91,6 +95,43 @@ struct ExpenseDraftCard: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Remove this expense")
+        }
+    }
+
+    /// Shown when nothing in the user's list fitted. Naming the category that
+    /// should exist, and making it one tap, beats leaving them with a blank.
+    @ViewBuilder
+    private var createProposedRow: some View {
+        if let proposal = draft.proposedCategory {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Nothing fits this one")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Theme.textSecondary)
+
+                Button(action: onCreateProposed) {
+                    HStack(spacing: 9) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.black)
+                            .frame(width: 22, height: 22)
+                            .background(Color.white, in: .circle)
+                        Text("Create \u{201C}\(proposal.name)\u{201D}")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                        Image(systemName: proposal.icon)
+                            .font(.system(size: 11))
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                    .padding(.leading, 5)
+                    .padding(.trailing, 12)
+                    .padding(.vertical, 5)
+                    .background(Color.white.opacity(0.10), in: Capsule())
+                    .overlay(Capsule().strokeBorder(Color.white.opacity(0.18), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Create a new category called \(proposal.name) and use it here")
+            }
         }
     }
 

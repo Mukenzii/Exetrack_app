@@ -16,6 +16,9 @@ struct ExpenseDraft: Identifiable {
     var categoryConfidence: Double
     /// Runner-up categories, offered as one-tap corrections.
     var alternatives: [CategoryEntity]
+    /// Set when nothing in the user's list fitted: the category the agent
+    /// thinks should exist, so the card can offer to create it.
+    var proposedCategory: (name: String, icon: String)?
 
     /// Below this we nudge the user to look before saving.
     ///
@@ -102,7 +105,8 @@ final class AIExpenseViewModel: ObservableObject {
                     isIncome: item.isIncome,
                     amountConfidence: item.confidence,
                     categoryConfidence: 0,
-                    alternatives: []
+                    alternatives: [],
+                    proposedCategory: nil
                 )
             }
             // Step 2 — let the agent place them among the user's categories.
@@ -149,6 +153,51 @@ final class AIExpenseViewModel: ObservableObject {
             )
         }
         return saved.count
+    }
+
+    // MARK: - Creating a missing category
+
+    /// Colours new categories get, cycled so two created in a row look distinct.
+    private static let palette = [
+        "#8E8E93", "#64D2FF", "#FF9F0A", "#BF5AF2", "#30D158",
+        "#FF453A", "#5AC8FA", "#FF2D55", "#FFD60A", "#0A84FF",
+    ]
+
+    /// Creates the category the agent proposed and files the draft under it.
+    ///
+    /// Saved immediately, so it is a real category the user can reuse and edit
+    /// like any other — not something that exists only on this screen.
+    func createProposedCategory(for draftID: UUID) {
+        guard let index = drafts.firstIndex(where: { $0.id == draftID }),
+              let proposal = drafts[index].proposedCategory else { return }
+
+        let isIncome = drafts[index].isIncome
+        let existing = allCategories()
+
+        // If the user already has one by that name, just use it.
+        if let match = existing.first(where: {
+            $0.name?.caseInsensitiveCompare(proposal.name) == .orderedSame && $0.isIncome == isIncome
+        }) {
+            apply(match, at: index)
+            return
+        }
+
+        let category = CategoryEntity(context: context)
+        category.id = UUID()
+        category.name = proposal.name
+        category.icon = proposal.icon
+        category.isIncome = isIncome
+        category.colorHex = Self.palette[existing.count % Self.palette.count]
+        category.group = "Other"
+        try? context.save()
+
+        apply(category, at: index)
+    }
+
+    private func apply(_ category: CategoryEntity, at index: Int) {
+        drafts[index].category = category
+        drafts[index].categoryConfidence = 1
+        drafts[index].proposedCategory = nil
     }
 
     // MARK: - Classification
@@ -200,6 +249,8 @@ final class AIExpenseViewModel: ObservableObject {
                     drafts[draftIndex].category = byName[suggestion.category]
                     drafts[draftIndex].categoryConfidence = suggestion.confidence
                     drafts[draftIndex].alternatives = suggestion.alternatives.compactMap { byName[$0] }
+                    drafts[draftIndex].proposedCategory = suggestion.proposedCategory
+                        .map { (name: $0.name, icon: $0.icon) }
                 }
             } catch {
                 categoryNotice = error.localizedDescription

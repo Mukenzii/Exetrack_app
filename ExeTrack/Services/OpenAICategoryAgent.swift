@@ -22,10 +22,19 @@ struct OpenAICategoryAgent {
     /// Where the model put it.
     struct Suggestion {
         let index: Int
+        /// Empty when the model declined — see `proposedCategory`.
         let category: String
         let confidence: Double
         /// Runner-up categories, offered as one-tap corrections.
         let alternatives: [String]
+        /// When nothing fitted, the category the user should create, so the
+        /// screen can offer to make it rather than just shrugging.
+        let proposedCategory: ProposedCategory?
+    }
+
+    struct ProposedCategory {
+        let name: String
+        let icon: String
     }
 
     /// Sent in the enum alongside the real categories so the model has a way
@@ -33,6 +42,16 @@ struct OpenAICategoryAgent {
     /// debt gets filed as Shopping because that is the least-bad option the
     /// model is permitted to give.
     static let declineValue = "__none_fit__"
+
+    /// SF Symbols the model may propose for a new category. An enum, so it
+    /// cannot invent a name that renders as a blank square.
+    static let proposableIcons = [
+        "arrow.left.arrow.right", "banknote.fill", "creditcard.fill", "tag.fill",
+        "cart.fill", "fork.knife", "car.fill", "house.fill", "heart.fill",
+        "gift.fill", "bag.fill", "airplane", "gamecontroller.fill", "briefcase.fill",
+        "wifi", "bolt.fill", "book.fill", "pawprint.fill", "graduationcap.fill",
+        "wrench.and.screwdriver.fill", "figure.and.child.holdinghands", "cross.case.fill",
+    ]
 
     /// A category the user has chosen before, used as a worked example.
     struct PastChoice {
@@ -103,7 +122,10 @@ struct OpenAICategoryAgent {
     Rules:
     - Choose only from the categories provided. Never invent one.
     - If none of them genuinely fits, answer "__none_fit__" rather than forcing a
-    poor match. Money lent or borrowed (qarz, qarz berdim, qarz oldim), a transfer
+    poor match, and use proposed_category to name the category the user should
+    create for it — a short, ordinary name in the same language and style as their
+    existing ones, with a fitting icon. Leave proposed_category blank whenever you
+    did pick a real category. Money lent or borrowed (qarz, qarz berdim, qarz oldim), a transfer
     between the person's own cards or accounts (o'tkazma, perevod), repaying a
     loan, and savings put aside are the usual cases — none of those is spending on
     goods, so unless the list has a category meant for them — "Debt", "Savings",
@@ -203,7 +225,8 @@ struct OpenAICategoryAgent {
                             "items": [
                                 "type": "object",
                                 "additionalProperties": false,
-                                "required": ["index", "category", "confidence", "alternatives"],
+                                "required": ["index", "category", "confidence", "alternatives",
+                                             "proposed_category", "proposed_icon"],
                                 "properties": [
                                     "index": ["type": "integer"],
                                     "category": ["type": "string", "enum": categories + [declineValue]],
@@ -214,6 +237,8 @@ struct OpenAICategoryAgent {
                                         "type": "array",
                                         "items": ["type": "string", "enum": categories],
                                     ],
+                                    "proposed_category": ["type": "string"],
+                                    "proposed_icon": ["type": "string", "enum": proposableIcons],
                                 ],
                             ],
                         ],
@@ -257,6 +282,8 @@ struct OpenAICategoryAgent {
             let category: String
             let confidence: Double
             let alternatives: [String]
+            let proposed_category: String
+            let proposed_icon: String
         }
         let results: [Result]
     }
@@ -269,18 +296,23 @@ struct OpenAICategoryAgent {
 
         // The schema already constrains this, but a category the user deleted
         // mid-request would still be nonsense to apply.
-        return payload.results
-            .filter { allowed.contains($0.category) }
-            .map { result in
-                Suggestion(
-                    index: result.index,
-                    category: result.category,
-                    confidence: min(max(result.confidence, 0), 1),
-                    alternatives: result.alternatives
-                        .filter { allowed.contains($0) && $0 != result.category }
-                        .prefix(3)
-                        .map { $0 }
-                )
-            }
+        return payload.results.map { result in
+            let matched = allowed.contains(result.category)
+            let proposal = result.proposed_category.trimmingCharacters(in: .whitespacesAndNewlines)
+            return Suggestion(
+                index: result.index,
+                category: matched ? result.category : "",
+                confidence: matched ? min(max(result.confidence, 0), 1) : 0,
+                alternatives: result.alternatives
+                    .filter { allowed.contains($0) && $0 != result.category }
+                    .prefix(3)
+                    .map { $0 },
+                // Only meaningful when nothing matched; ignore a stray proposal
+                // that arrives alongside a real answer.
+                proposedCategory: (matched || proposal.isEmpty)
+                    ? nil
+                    : ProposedCategory(name: proposal, icon: result.proposed_icon)
+            )
+        }
     }
 }

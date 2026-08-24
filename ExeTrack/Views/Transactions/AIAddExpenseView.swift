@@ -345,6 +345,10 @@ struct AIAddExpenseView: View {
                         guard let index = vm.drafts.firstIndex(where: { $0.id == draft.id }) else { return }
                         withAnimation { swapCategory(at: index, to: category) }
                     },
+                    onCreateProposed: {
+                        withAnimation { vm.createProposedCategory(for: draft.id) }
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    },
                     onRemove: { withAnimation { vm.remove(draft) } }
                 )
             }
